@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "zhcpa-operation"
+version = "0.1.0"
+description = ""
+authors = ["Sam Sze <mingsum.sam@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "zhcpa_operation"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+alibabacloud-dingtalk = "^2.0.26"
+python-dotenv = "^1.0.0"
+pandas = "^2.0.3"
+holidays = "^0.30"
+supabase = "^1.0.4"
+matplotlib = "^3.7.2"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.24.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+# https://github.com/microsoft/pyright/blob/main/docs/configuration.md
+typeCheckingMode = "strict"
+reportUnusedImport = "warning"
+reportMissingTypeStubs = "warning"
+reportUnusedVariable = "warning"
+reportUnusedFunction = "warning"
+reportUnknownVariableType = "warning"
+reportUnknownMemberType = "warning"

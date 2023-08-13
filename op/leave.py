@@ -139,7 +139,7 @@ def get_opusers_leave_records_v2(
     opuserids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
     offset_and_size: Optional[Tuple[int, int]] = None,
-) -> List[dingtalk_workflow_models.ListProcessInstanceIdsResponseBodyResult]:
+) -> List[str]:
     """
     Get all operation user (i.e. colleagues) leave applications (regardless of status
     i.e. approved, rejected, pending)
@@ -151,8 +151,8 @@ def get_opusers_leave_records_v2(
         offset: int,
         size: int,
     ) -> Tuple[
-        List[dingtalk_workflow_models.ListProcessInstanceIdsResponseBodyResult],
-        str,
+        List[str],
+        int,
     ]:
         print(offset)
         req = dingtalk_workflow_models.ListProcessInstanceIdsRequest(
@@ -185,7 +185,17 @@ def get_opusers_leave_records_v2(
 
             data = response.body.result
 
-            return (data.list, data.next_token)
+            # assert data.list is List[str]
+            # assert data.next_token is int
+            next_token = data.next_token
+            if not isinstance(next_token, int):
+                raise Exception("Dingtalk response not ok")
+            
+            data_list = data.list
+            if not isinstance(data_list, List):
+                raise Exception("Dingtalk response not ok")
+
+            return (data_list, next_token)
         except Exception as err:
             raise err
 

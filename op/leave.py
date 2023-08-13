@@ -185,17 +185,7 @@ def get_opusers_leave_records_v2(
 
             data = response.body.result
 
-            # assert data.list is List[str]
-            # assert data.next_token is int
-            next_token = data.next_token
-            if not isinstance(next_token, int):
-                raise Exception("Dingtalk response not ok")
-            
-            data_list = data.list
-            if not isinstance(data_list, List):
-                raise Exception("Dingtalk response not ok")
-
-            return (data_list, next_token)
+            return (data.list, data.next_token)  # pyright: ignore
         except Exception as err:
             raise err
 

@@ -17,14 +17,9 @@ def main():
     # pass
     # pprint(get_workflows())
     # print(get_time(2020, 4, 10))
-    code = leave_workflow.process_code
-    if not isinstance(code, str):
-        raise Exception("Workflow code is not a string")
-    assert code is str
-
     leave_records = get_opusers_leave_records_v2(
         start_time=get_time(2023, 8, 1),
-        process_code=code,
+        process_code=leave_workflow.process_code,  # pyright: ignore
         end_time=get_time(2023, 8, 10),
     )
     pprint(leave_records)

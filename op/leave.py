@@ -1,11 +1,11 @@
-from functools import partial
 from typing import List, Optional, Tuple, TypedDict
+
+from .workflows import get_workflow_instance_details, get_workflow_instances_ids
 
 from .opuser import get_opuserids
 from .utils import (
     api,
     generate_depagination_logic,
-    generate_depagination_logic_by_token,
 )
 from .shared import admin_opuserid, access_token, config, runtime_options
 from alibabacloud_dingtalk.attendance_1_0 import models as dingtalk_attendance_models
@@ -13,9 +13,6 @@ from alibabacloud_dingtalk.attendance_1_0.client import (
     Client as DingtalkAttendanceClient,
 )
 from alibabacloud_dingtalk.workflow_1_0 import models as dingtalk_workflow_models
-from alibabacloud_dingtalk.workflow_1_0.client import (
-    Client as DingtalkWorkflowClient,
-)
 
 
 class LeaveType(TypedDict):
@@ -62,14 +59,14 @@ def get_leave_types() -> List[LeaveType]:
         raise err
 
 
-def get_opusers_leave_records(
+def get_opusers_leave_records_ids_v1(
     leave_code: Optional[str] = None, opuserids: Optional[List[str]] = None
 ) -> List[dingtalk_attendance_models.GetLeaveRecordsResponseBodyResultLeaveRecords]:
     """
-    Get all operation user (i.e. colleagues) leave applications (regardless of status
-    i.e. approved, rejected, pending)
+    Get all operation user (i.e. colleagues) leave applications' IDs (regardless of
+    status i.e. approved, rejected, pending)
 
-    Deprecated. Please use v2 instead.
+    Deprecated. Please use the other version instead.
     """
     if not opuserids:
         opuserids = get_opuserids(
@@ -132,7 +129,7 @@ def get_opusers_leave_records(
     return leave_records
 
 
-def get_opusers_leave_records_v2(
+def get_opusers_leave_records_ids(
     process_code: str,
     start_time: int,
     end_time: int,
@@ -141,55 +138,23 @@ def get_opusers_leave_records_v2(
     offset_and_size: Optional[Tuple[int, int]] = None,
 ) -> List[str]:
     """
-    Get all operation user (i.e. colleagues) leave applications (regardless of status
-    i.e. approved, rejected, pending)
-
-    https://open-dev.dingtalk.com/apiExplorer#/?devType=org&api=workflow_1.0%23ListProcessInstanceIds
+    Get all operation user (i.e. colleagues) leave applications' IDs (regardless of
+    status i.e. approved, rejected, pending)
     """
+    return get_workflow_instances_ids(
+        process_code=process_code,
+        start_time=start_time,
+        end_time=end_time,
+        opuserids=opuserids,
+        statuses=statuses,
+        offset_and_size=offset_and_size,
+    )
 
-    def fetch_from_server(
-        offset: int,
-        size: int,
-    ) -> Tuple[
-        List[str],
-        int,
-    ]:
-        print(offset)
-        req = dingtalk_workflow_models.ListProcessInstanceIdsRequest(
-            next_token=offset,
-            start_time=start_time,
-            end_time=end_time,
-            process_code=process_code,
-            max_results=size,
-        )
-        if opuserids:
-            req.user_ids = opuserids
-        if statuses:
-            req.statuses = statuses
 
-        headers = dingtalk_workflow_models.ListProcessInstanceIdsHeaders(
-            x_acs_dingtalk_access_token=access_token
-        )
-
-        try:
-            response = DingtalkWorkflowClient(
-                config
-            ).list_process_instance_ids_with_options(
-                req, headers, runtime=runtime_options
-            )
-            if getattr(response, "status_code") != 200:
-                raise Exception("Request not ok")
-
-            if not getattr(response.body, "success"):
-                raise Exception("Dingtalk request not ok")
-
-            data = response.body.result
-
-            return (data.list, data.next_token)  # pyright: ignore
-        except Exception as err:
-            raise err
-
-    if offset_and_size:
-        return fetch_from_server(*offset_and_size)[0]
-
-    return generate_depagination_logic(partial(fetch_from_server, size=20))()
+def get_leave_record_details(
+    leave_record_id: str,
+) -> dingtalk_workflow_models.GetProcessInstanceResponseBodyResult:
+    """
+    Get a particular leave record's details
+    """
+    return get_workflow_instance_details(leave_record_id)

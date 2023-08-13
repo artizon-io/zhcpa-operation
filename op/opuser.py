@@ -9,6 +9,7 @@ def get_opuserids(
     """
     Get all operation user (i.e. colleagues) ids
     """
+
     def fetch_from_server(offset: int, size: int) -> Tuple[List[str], Optional[int]]:
         try:
             data = api(

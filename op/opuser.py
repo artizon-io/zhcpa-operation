@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TypedDict
 from op.utils import api, generate_depagination_logic
 from functools import partial
 from op.cache import cache
@@ -50,3 +50,38 @@ if not opusers_cache:
 
     with open("cache.ini", "w") as configfile:
         cache.write(configfile)
+
+
+class OpuserDetail(TypedDict):
+    field_code: str
+    field_name: str
+    value: str
+    label: str
+    group_id: str
+
+
+class OpuserDetails(TypedDict):
+    userid: str
+    field_list: List[OpuserDetail]
+    partner: bool
+
+
+def get_opusers_details() -> List[OpuserDetails]:
+    """
+    Get all operation user (i.e. colleagues) details
+
+    https://open-dev.dingtalk.com/apiExplorer#/?devType=org&api=dingtalk.oapi.smartwork.hrm.employee.list
+    """
+    result: List[OpuserDetails] = []
+
+    offset = 0
+    while offset < len(get_opusers_ids()):
+        result += api(
+            "https://oapi.dingtalk.com/topapi/smartwork/hrm/employee/list",
+            {
+                "userid_list": ",".join(get_opusers_ids()[offset : offset + 50]),
+            },
+        )
+        offset += 50
+
+    return result

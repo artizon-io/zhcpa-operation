@@ -1,6 +1,6 @@
 from functools import partial
 from typing import List, Optional, Tuple
-from .opuser import all_opuserids
+from .opuser import get_opusers_ids
 
 
 from .utils import (
@@ -21,7 +21,7 @@ def get_attendance_records_details(
     https://open-dev.dingtalk.com/apiExplorer#/?devType=org&api=dingtalk.oapi.attendance.list
     """
     if not opuserids:
-        opuserids = all_opuserids[0:30]
+        opuserids = get_opusers_ids()[0:30]
 
     def fetch_from_server(offset: int, size: int):
         try:

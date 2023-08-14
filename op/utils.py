@@ -1,7 +1,7 @@
 import datetime
 from requests import request
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from .shared import access_token
+from op.shared import access_token
 
 
 def api(

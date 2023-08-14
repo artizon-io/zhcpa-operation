@@ -1,19 +1,19 @@
 from typing import List, Optional, Tuple, TypedDict
 
-from .workflows import get_workflow_instance_details, get_workflow_instances_ids
+from op.workflows import get_workflow_instance_details, get_workflow_instances_ids
 
-from .opuser import get_opusers_ids
-from .utils import (
+from op.opuser import get_opusers_ids
+from op.utils import (
     api,
     generate_depagination_logic,
 )
-from .shared import admin_opuserid, access_token, config, runtime_options
+from op.shared import admin_opuserid, access_token, config, runtime_options
 from alibabacloud_dingtalk.attendance_1_0 import models as dingtalk_attendance_models
 from alibabacloud_dingtalk.attendance_1_0.client import (
     Client as DingtalkAttendanceClient,
 )
 from alibabacloud_dingtalk.workflow_1_0 import models as dingtalk_workflow_models
-from .workflows import get_leave_workflow_id
+from op.workflows import get_leave_workflow_id
 
 
 class LeaveType(TypedDict):

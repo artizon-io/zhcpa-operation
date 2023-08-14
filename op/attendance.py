@@ -1,9 +1,9 @@
 from functools import partial
 from typing import List, Optional, Tuple
-from .opuser import get_opusers_ids
+from op.opuser import get_opusers_ids
 
 
-from .utils import (
+from op.utils import (
     api,
     generate_depagination_logic,
 )

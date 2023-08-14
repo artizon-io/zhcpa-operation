@@ -1,8 +1,8 @@
 import json
 from typing import List, Optional, Tuple
-from .utils import api, generate_depagination_logic
+from op.utils import api, generate_depagination_logic
 from functools import partial
-from .cache import cache
+from op.cache import cache
 
 
 def get_opusers_ids(

@@ -44,13 +44,13 @@ Membership Renewal (31.3.2023)
 from functools import partial
 from typing import List, Optional, Tuple
 
-from .utils import generate_depagination_logic
-from .shared import admin_opuserid, access_token, config, runtime_options
+from op.utils import generate_depagination_logic
+from op.shared import admin_opuserid, access_token, config, runtime_options
 from alibabacloud_dingtalk.workflow_1_0 import models as dingtalk_workflow_models
 from alibabacloud_dingtalk.workflow_1_0.client import (
     Client as DingtalkWorkflowClient,
 )
-from .cache import cache
+from op.cache import cache
 
 
 def get_workflows() -> (

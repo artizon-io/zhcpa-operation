@@ -1,47 +1,3 @@
-from functools import partial
-from typing import List, Optional, Tuple
-
-from .utils import generate_depagination_logic
-from .shared import admin_opuserid, access_token, config, runtime_options
-from alibabacloud_dingtalk.workflow_1_0 import models as dingtalk_workflow_models
-from alibabacloud_dingtalk.workflow_1_0.client import (
-    Client as DingtalkWorkflowClient,
-)
-
-
-def get_workflows() -> (
-    List[dingtalk_workflow_models.GetManageProcessByStaffIdResponseBodyResult]
-):
-    """
-    Get all workflows' details (i.e. OA forms)
-    """
-    req = dingtalk_workflow_models.GetManageProcessByStaffIdRequest(
-        user_id=admin_opuserid,
-    )
-    headers = dingtalk_workflow_models.GetManageProcessByStaffIdHeaders(
-        x_acs_dingtalk_access_token=access_token
-    )
-
-    try:
-        response = DingtalkWorkflowClient(
-            config
-        ).get_manage_process_by_staff_id_with_options(
-            req, headers, runtime=runtime_options
-        )
-        if getattr(response, "status_code") != 200:
-            raise Exception("Request not ok")
-
-        if not getattr(response.body, "success"):
-            raise Exception("Dingtalk request not ok")
-
-        data = response.body.result
-
-        return data
-    except Exception as err:
-        raise err
-
-
-workflows = get_workflows()
 """
 All workflows
 
@@ -85,9 +41,79 @@ Membership Renewal (31.3.2023)
 旅游统计
 """
 
-# pyright: reportUnknownMemberType=warning
-leave_workflow = next(w for w in workflows if w.flow_title == "Leave")
-overtime_workflow = next(w for w in workflows if w.flow_title == "OT")
+from functools import partial
+from typing import List, Optional, Tuple
+
+from .utils import generate_depagination_logic
+from .shared import admin_opuserid, access_token, config, runtime_options
+from alibabacloud_dingtalk.workflow_1_0 import models as dingtalk_workflow_models
+from alibabacloud_dingtalk.workflow_1_0.client import (
+    Client as DingtalkWorkflowClient,
+)
+from .cache import cache
+
+
+def get_workflows() -> (
+    List[dingtalk_workflow_models.GetManageProcessByStaffIdResponseBodyResult]
+):
+    """
+    Get all workflows' details (i.e. OA forms)
+    """
+    req = dingtalk_workflow_models.GetManageProcessByStaffIdRequest(
+        user_id=admin_opuserid,
+    )
+    headers = dingtalk_workflow_models.GetManageProcessByStaffIdHeaders(
+        x_acs_dingtalk_access_token=access_token
+    )
+
+    try:
+        response = DingtalkWorkflowClient(
+            config
+        ).get_manage_process_by_staff_id_with_options(
+            req, headers, runtime=runtime_options
+        )
+        if getattr(response, "status_code") != 200:
+            raise Exception("Request not ok")
+
+        if not getattr(response.body, "success"):
+            raise Exception("Dingtalk request not ok")
+
+        data = response.body.result
+
+        return data
+    except Exception as err:
+        raise err
+
+
+def get_leave_workflow_id() -> str:
+    return cache["workflows"]["leave_workflow_id"]
+
+
+def get_overtime_workflow_id() -> str:
+    return cache["workflows"]["overtime_workflow_id"]
+
+
+workflow_cache = None
+try:
+    workflow_cache = cache["workflows"]
+except KeyError:
+    pass
+
+if not workflow_cache:
+    workflows = get_workflows()
+
+    leave_workflow = next(w for w in workflows if w.flow_title == "Leave")
+    overtime_workflow = next(
+        w for w in workflows if w.flow_title == "(HKD) 8月-Petty Cash & OT Claim"
+    )
+
+    cache["workflows"] = {
+        "leave_workflow_id": f"{leave_workflow.process_code}",
+        "overtime_workflow_id": f"{overtime_workflow.process_code}",
+    }
+
+    with open("cache.ini", "w") as configfile:
+        cache.write(configfile)
 
 
 def get_workflow_instances_ids(

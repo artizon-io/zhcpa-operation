@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple, TypedDict
 
 from .workflows import get_workflow_instance_details, get_workflow_instances_ids
 
-from .opuser import get_opuserids
+from .opuser import get_opusers_ids
 from .utils import (
     api,
     generate_depagination_logic,
@@ -13,6 +13,7 @@ from alibabacloud_dingtalk.attendance_1_0.client import (
     Client as DingtalkAttendanceClient,
 )
 from alibabacloud_dingtalk.workflow_1_0 import models as dingtalk_workflow_models
+from .workflows import get_leave_workflow_id
 
 
 class LeaveType(TypedDict):
@@ -69,7 +70,7 @@ def get_opusers_leave_records_ids_v1(
     Deprecated. Please use the other version instead.
     """
     if not opuserids:
-        opuserids = get_opuserids(
+        opuserids = get_opusers_ids(
             (0, 5),
         )
 
@@ -130,7 +131,6 @@ def get_opusers_leave_records_ids_v1(
 
 
 def get_opusers_leave_records_ids(
-    process_code: str,
     start_time: int,
     end_time: int,
     opuserids: Optional[List[str]] = None,
@@ -142,7 +142,7 @@ def get_opusers_leave_records_ids(
     status i.e. approved, rejected, pending)
     """
     return get_workflow_instances_ids(
-        process_code=process_code,
+        process_code=get_leave_workflow_id(),
         start_time=start_time,
         end_time=end_time,
         opuserids=opuserids,

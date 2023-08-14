@@ -50,6 +50,9 @@ def get_access_token() -> str:
 
 
 access_token = get_access_token()
+"""
+For both new and old Dingtalk API
+"""
 
 runtime_options = RuntimeOptions()
 """

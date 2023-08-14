@@ -4,7 +4,15 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from .shared import access_token
 
 
-def api(endpoint: str, data: Dict[str, Any], method: str = "POST"):
+def api(
+    endpoint: str,
+    data: Dict[str, Any],
+    method: str = "POST",
+    json: bool = False,
+    has_success_field_in_response: bool = True,
+    has_errmsg_field_in_response: bool = False,
+    has_result_field_in_response: bool = True,
+):
     """
     For old Dingtalk API
     """
@@ -13,15 +21,22 @@ def api(endpoint: str, data: Dict[str, Any], method: str = "POST"):
             method,
             endpoint,
             params={"access_token": access_token},
-            data=data,
+            data=data if not json else None,
+            json=data if json else None,
         )
         if not response.ok:
             raise Exception("Request not ok")
 
-        if not response.json()["success"]:
-            raise Exception(f"Dingtalk request not ok: {response.json()['errmsg']}")
+        if has_success_field_in_response and not response.json().get("success"):
+            raise Exception(f"Dingtalk request {endpoint} not ok: {response.json()}")
 
-        return response.json()["result"]
+        if has_errmsg_field_in_response and response.json().get("errmsg") != "ok":
+            raise Exception(f"Dingtalk request {endpoint} not ok: {response.json()}")
+
+        if has_result_field_in_response:
+            return response.json()["result"]
+        else:
+            return response.json()
 
     except Exception as err:
         raise err

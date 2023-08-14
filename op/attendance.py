@@ -39,7 +39,6 @@ def get_attendance_records_details(
                 has_success_field_in_response=False,
                 has_errmsg_field_in_response=True,
             )
-            print(len(data["recordresult"]))
             return (data["recordresult"], offset + size if data["hasMore"] else None)
 
         except Exception as err:

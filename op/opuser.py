@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple, TypedDict
 from op.utils import api, generate_depagination_logic
 from functools import partial
 from op.cache import cache
+from typing import Any
 
 
 def get_opusers_ids(
@@ -52,18 +53,36 @@ if not opusers_cache:
         cache.write(configfile)
 
 
-class OpuserDetail(TypedDict):
-    field_code: str
-    field_name: str
-    value: str
-    label: str
-    group_id: str
-
-
 class OpuserDetails(TypedDict):
-    userid: str
-    field_list: List[OpuserDetail]
-    partner: bool
+    """
+    https://oa.dingtalk.com/new/hrmregister/web/index#/employeeData
+    """
+
+    opuserid: str
+    name: str
+    name_chinese: str
+    phone: str
+    email: str
+    employee_id: str
+    department: str
+    rank: str
+
+
+def extract_opuser_details(raw_details: Any) -> OpuserDetails:
+    fields = raw_details["field_list"]
+
+    details = dict()
+
+    details["opuserid"] = raw_details["userid"]
+    details["name"] = fields.get("姓名")
+    details["name_chinese"] = fields.get("中文名")
+    details["phone"] = fields.get("手机号")
+    details["email"] = fields.get("邮箱")
+    details["employee_id"] = fields.get("工号")
+    details["department"] = fields.get("部门")
+    details["rank"] = fields.get("主部门")
+
+    return details  # pyright: ignore
 
 
 def get_opusers_details() -> List[OpuserDetails]:
@@ -84,4 +103,4 @@ def get_opusers_details() -> List[OpuserDetails]:
         )
         offset += 50
 
-    return result
+    return list(map(extract_opuser_details, result))

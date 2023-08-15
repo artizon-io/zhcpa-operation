@@ -201,3 +201,7 @@ def get_workflow_instance_details(
         return data
     except Exception as err:
         raise err
+
+
+# a = get_workflow_instance_details("adsfa")
+# a.id

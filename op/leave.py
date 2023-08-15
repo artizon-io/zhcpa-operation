@@ -1,4 +1,5 @@
-from typing import List, Optional, Tuple, TypedDict
+import json
+from typing import Any, List, Optional, Tuple, TypedDict
 
 from op.workflows import get_workflow_instance_details, get_workflow_instances_ids
 
@@ -6,13 +7,13 @@ from op.opuser import get_opusers_ids
 from op.utils import (
     api,
     generate_depagination_logic,
+    iso_date_sanity_check,
 )
 from op.shared import admin_opuserid, access_token, config, runtime_options
 from alibabacloud_dingtalk.attendance_1_0 import models as dingtalk_attendance_models
 from alibabacloud_dingtalk.attendance_1_0.client import (
     Client as DingtalkAttendanceClient,
 )
-from alibabacloud_dingtalk.workflow_1_0 import models as dingtalk_workflow_models
 from op.workflows import get_leave_workflow_id
 
 
@@ -60,7 +61,7 @@ def get_leave_types() -> List[LeaveType]:
         raise err
 
 
-def get_opusers_leave_records_ids_v1(
+def get_leave_records_ids_v1(
     leave_code: Optional[str] = None, opuserids: Optional[List[str]] = None
 ) -> List[dingtalk_attendance_models.GetLeaveRecordsResponseBodyResultLeaveRecords]:
     """
@@ -130,7 +131,7 @@ def get_opusers_leave_records_ids_v1(
     return leave_records
 
 
-def get_opusers_leave_records_ids(
+def get_leave_records_ids(
     start_time: int,
     end_time: int,
     opuserids: Optional[List[str]] = None,
@@ -151,10 +152,80 @@ def get_opusers_leave_records_ids(
     )
 
 
+class LeaveRecord(TypedDict):
+    """
+    All time fields are in ISO format
+    All duration fields are in hours
+    """
+
+    opuserid: str
+    leave_type: str
+    leave_start_time: int
+    leave_end_time: int
+    leave_duration: int
+    opuser_remark: str
+
+
+def extract_leave_record_details(raw_details: Any) -> LeaveRecord:
+    details = dict()
+
+    details["opuserid"] = raw_details.originator_user_id
+    details["record_create_time"] = iso_date_sanity_check(raw_details.create_time)
+    details["status"] = raw_details.status
+
+    def get_custom_field(key: str):
+        return next(
+            field.value
+            for field in raw_details.form_component_values
+            if field.name == key
+        )
+
+    time_details = get_custom_field('["开始时间","结束时间"]')
+    time_details = json.loads(time_details)
+    details["leave_start_time"] = iso_date_sanity_check(time_details[0])
+    details["leave_end_time"] = iso_date_sanity_check(time_details[1])
+    # match time_details[3]:
+    #     case "hour":
+    #         details["leave_duration"] = time_details[2]
+    #     case "day":
+    #         details["leave_duration"] = time_details[2] * 8  # TODO: depends on schedule
+    #     case "minute":
+    #         details["leave_duration"] = time_details[2] / 60
+    #     case _:
+    #         raise Exception("Unknown leave duration unit")
+    details["leave_duration"] = time_details[2]
+    details["leave_type"] = time_details[4]
+    details["opuser_remark"] = get_custom_field("請假事由")
+
+    return details  # pyright: ignore
+
+
 def get_leave_record_details(
     leave_record_id: str,
-) -> dingtalk_workflow_models.GetProcessInstanceResponseBodyResult:
+) -> LeaveRecord:
     """
     Get a particular leave record's details
     """
-    return get_workflow_instance_details(leave_record_id)
+    return extract_leave_record_details(get_workflow_instance_details(leave_record_id))
+
+
+def get_leave_records(
+    start_time: int,
+    end_time: int,
+    opuserids: Optional[List[str]] = None,
+    statuses: Optional[List[str]] = None,
+    offset_and_size: Optional[Tuple[int, int]] = None,
+) -> List[LeaveRecord]:
+    """
+    Get all operation user (i.e. colleagues) leave applications' details (regardless of
+    status i.e. approved, rejected, pending)
+    """
+
+    records = get_leave_records_ids(
+        start_time=start_time,
+        end_time=end_time,
+        opuserids=opuserids,
+        statuses=statuses,
+        offset_and_size=offset_and_size,
+    )
+    return list(map(get_leave_record_details, records))  # type: ignore

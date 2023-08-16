@@ -74,8 +74,12 @@ def generate_depagination_logic_by_token(
     return wrapper
 
 
-def get_time(year: int, month: int, day: int) -> int:
+def get_unix_time(year: int, month: int, day: int) -> int:
     return int(datetime.datetime(year, month, day).timestamp() * 1000)
+
+
+def parse_unix_time(unix_time: int) -> datetime.datetime:
+    return datetime.datetime.fromtimestamp(unix_time / 1000)
 
 
 def iso_date_sanity_check(date: str) -> str:

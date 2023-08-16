@@ -63,7 +63,7 @@ class OpuserDetails(TypedDict):
     name_chinese: str
     phone: str
     email: str
-    employee_id: str
+    employee_code: str
     department: str
     rank: str
 
@@ -71,16 +71,23 @@ class OpuserDetails(TypedDict):
 def extract_opuser_details(raw_details: Any) -> OpuserDetails:
     fields = raw_details["field_list"]
 
+    def get_field(key: str):
+        return next(
+            None if field.get("value") == "" else field.get("value")
+            for field in fields
+            if field.get("field_name") == key
+        )
+
     details = dict()
 
     details["opuserid"] = raw_details["userid"]
-    details["name"] = fields.get("姓名")
-    details["name_chinese"] = fields.get("中文名")
-    details["phone"] = fields.get("手机号")
-    details["email"] = fields.get("邮箱")
-    details["employee_id"] = fields.get("工号")
-    details["department"] = fields.get("部门")
-    details["rank"] = fields.get("主部门")
+    details["name"] = get_field("姓名")
+    details["name_chinese"] = get_field("中文名")
+    details["phone"] = get_field("手机号")
+    details["email"] = get_field("邮箱")
+    details["employee_code"] = get_field("工号")
+    details["department"] = get_field("部门")
+    details["rank"] = get_field("主部门")
 
     return details  # pyright: ignore
 

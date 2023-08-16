@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Optional, Tuple, TypedDict
+from typing import Any, List, Literal, Optional, Tuple, TypedDict
 
 from op.workflows import get_workflow_instance_details, get_workflow_instances_ids
 
@@ -159,6 +159,8 @@ class LeaveRecord(TypedDict):
     """
 
     opuserid: str
+    record_create_time: int
+    status: Literal["TERMINATED", "APPROVED", "REJECTED"]
     leave_type: str
     leave_start_time: int
     leave_end_time: int
@@ -171,7 +173,10 @@ def extract_leave_record_details(raw_details: Any) -> LeaveRecord:
 
     details["opuserid"] = raw_details.originator_user_id
     details["record_create_time"] = iso_date_sanity_check(raw_details.create_time)
-    details["status"] = raw_details.status
+    if raw_details.status == "COMPLETED":
+        details["status"] = "APPROVED" if raw_details.result == "agree" else "REJECTED"
+    else:
+        details["status"] = raw_details.status
 
     def get_custom_field(key: str):
         return next(
@@ -184,17 +189,14 @@ def extract_leave_record_details(raw_details: Any) -> LeaveRecord:
     time_details = json.loads(time_details)
     details["leave_start_time"] = iso_date_sanity_check(time_details[0])
     details["leave_end_time"] = iso_date_sanity_check(time_details[1])
-    # match time_details[3]:
-    #     case "hour":
-    #         details["leave_duration"] = time_details[2]
-    #     case "day":
-    #         details["leave_duration"] = time_details[2] * 8  # TODO: depends on schedule
-    #     case "minute":
-    #         details["leave_duration"] = time_details[2] / 60
-    #     case _:
-    #         raise Exception("Unknown leave duration unit")
-    details["leave_duration"] = time_details[2]
     details["leave_type"] = time_details[4]
+    match time_details[3]:
+        case "hour":
+            details["leave_duration"] = time_details[2]
+        case "day":
+            details["leave_duration"] = time_details[2] * 8  # TODO: depends on schedule
+        case _:
+            raise Exception("Unknown leave duration unit")
     details["opuser_remark"] = get_custom_field("請假事由")
 
     return details  # pyright: ignore
@@ -214,7 +216,6 @@ def get_leave_records(
     end_time: int,
     opuserids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
-    offset_and_size: Optional[Tuple[int, int]] = None,
 ) -> List[LeaveRecord]:
     """
     Get all operation user (i.e. colleagues) leave applications' details (regardless of
@@ -226,6 +227,5 @@ def get_leave_records(
         end_time=end_time,
         opuserids=opuserids,
         statuses=statuses,
-        offset_and_size=offset_and_size,
     )
     return list(map(get_leave_record_details, records))  # type: ignore

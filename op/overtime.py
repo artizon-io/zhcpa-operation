@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Optional, Tuple, TypedDict, Union
+from typing import Any, List, Literal, Optional, Tuple, TypedDict, Union
 from op.utils import iso_date_sanity_check
 
 from op.workflows import (
@@ -44,9 +44,10 @@ class PettyCashOnlyRecord(TypedDict):
     All time fields are in ISO format
     """
 
+    petty_cash_only: bool
     opuserid: str
     record_create_time: int
-    status: str
+    status: Literal["TERMINATED", "APPROVED", "REJECTED"]
     job_code: str
     opuser_remark: str
     expenses: List[OvertimeExpense]
@@ -58,9 +59,10 @@ class OvertimeRecord(TypedDict):
     All duration fields are in hours
     """
 
+    petty_cash_only: bool
     opuserid: str
     record_create_time: int
-    status: str
+    status: Literal["TERMINATED", "APPROVED", "REJECTED"]
     overtime_start_time: int
     overtime_end_time: int
     overtime_duration: float
@@ -79,7 +81,10 @@ def extract_overtime_record_details(
     details["record_create_time"] = iso_date_sanity_check(
         raw_details.create_time  # pyright: ignore
     )
-    details["status"] = raw_details.status  # TODO: merge this with result
+    if raw_details.status == "COMPLETED":
+        details["status"] = "APPROVED" if raw_details.result == "agree" else "REJECTED"
+    else:
+        details["status"] = raw_details.status
 
     def get_custom_field(key: str):
         return next(
@@ -90,8 +95,9 @@ def extract_overtime_record_details(
 
     is_overtime = get_custom_field("是否需要 Claim OT")
     if is_overtime == "否":
-        pass
+        details["petty_cash_only"] = True
     else:
+        details["petty_cash_only"] = False
         details["overtime_start_time"] = iso_date_sanity_check(get_custom_field("開始時間"))
         details["overtime_end_time"] = iso_date_sanity_check(get_custom_field("結束時間"))
         details["overtime_duration"] = float(get_custom_field("時長"))
@@ -107,14 +113,10 @@ def extract_overtime_record_details(
         for entry in table:
             entry = entry["rowValue"]
             expense_type = next(
-                field["value"]
-                for field in entry
-                if field["label"] == "Exp/報銷項目"
+                field["value"] for field in entry if field["label"] == "Exp/報銷項目"
             )
             expense_amount = next(
-                field["value"]
-                for field in entry
-                if field["label"] == "Amount/金額 (HKD)"
+                field["value"] for field in entry if field["label"] == "Amount/金額 (HKD)"
             )
             expenses.append(
                 {
@@ -146,7 +148,6 @@ def get_overtime_records(
     end_time: int,
     opuserids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
-    offset_and_size: Optional[Tuple[int, int]] = None,
 ) -> List[Union[OvertimeRecord, PettyCashOnlyRecord]]:
     """
     Get all operation user (i.e. colleagues) overtime applications' details (regardless of
@@ -158,6 +159,5 @@ def get_overtime_records(
         end_time=end_time,
         opuserids=opuserids,
         statuses=statuses,
-        offset_and_size=offset_and_size,
     )
     return list(map(get_overtime_record_details, records))  # type: ignore

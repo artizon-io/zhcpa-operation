@@ -12,7 +12,8 @@ python = "^3.11"
 alibabacloud-dingtalk = "^2.0.26"
 python-dotenv = "^1.0.0"
 pandas = "^2.0.3"
-supabase-py = "^0.0.2"
+holidays = "^0.30"
+supabase = "^1.0.4"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.24.0"

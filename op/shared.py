@@ -3,7 +3,6 @@ from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_dingtalk.oauth2_1_0 import models as dingtalk_oauth_models
 import os
 from dotenv import load_dotenv
-from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_tea_util.models import RuntimeOptions
 
 load_dotenv()

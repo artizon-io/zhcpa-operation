@@ -1,6 +1,9 @@
+from datetime import datetime
 from functools import partial
-from typing import Any, List, Optional, TypedDict, Union
+from typing import Any, List, Optional, TypedDict
 from op.opuser import get_opusers_ids
+from op.supabase import supabase
+import pandas as pd
 
 
 from op.utils import (
@@ -10,56 +13,50 @@ from op.utils import (
 )
 
 
-class CheckMissRecord(TypedDict):
-    miss_check: bool
-    id: str
-    opuserid: str
-    check_in: bool
-
-
 class AttendanceRecord(TypedDict):
-    """
-    All time fields are in ISO format
-    """
-
     miss_check: bool
     id: str
     opuserid: str
     check_in: bool
-    check_time: int
+    check_time: datetime
     check_source: str
 
 
 def extract_attendance_details(
     raw_details: Any,
-) -> Union[AttendanceRecord, CheckMissRecord]:
+) -> AttendanceRecord | None:
+    if raw_details["timeResult"] == "NotSigned":
+        return None
+
     details = dict()
 
     details["id"] = raw_details["id"]
     details["opuserid"] = raw_details["userId"]
     details["check_in"] = raw_details["checkType"] == "OnDuty"
 
-    details["miss_check"] = raw_details["timeResult"] == "NotSigned"
-
-    if not details["miss_check"]:
-        details["check_time"] = parse_unix_time(raw_details["userCheckTime"])
-        details["check_source"] = raw_details["sourceType"]
+    details["check_time"] = parse_unix_time(raw_details["userCheckTime"])
+    details["check_source"] = raw_details["sourceType"]
 
     return details  # pyright: ignore
 
 
-def get_attendance_records_details(
-    start_time: str,
-    end_time: str,
+def get_attendance_records(
+    start_time: datetime,
+    end_time: datetime,
     opuserids: Optional[List[str]] = None,
-) -> List[Union[AttendanceRecord, CheckMissRecord]]:
+) -> List[AttendanceRecord]:
     """
     Get all operation user (i.e. colleagues) attendance records' details
 
     https://open-dev.dingtalk.com/apiExplorer#/?devType=org&api=dingtalk.oapi.attendance.list
+
+    Must not span across more than 1 week
     """
     if not opuserids:
         opuserids = get_opusers_ids()
+
+    start_time_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
+    end_time_str = end_time.strftime("%Y-%m-%d %H:%M:%S")
 
     offset = 0
     all_records = []
@@ -72,8 +69,8 @@ def get_attendance_records_details(
                 data = api(
                     "https://oapi.dingtalk.com/attendance/list",
                     {
-                        "workDateFrom": start_time,
-                        "workDateTo": end_time,
+                        "workDateFrom": start_time_str,
+                        "workDateTo": end_time_str,
                         "userIdList": partial_opuserids,
                         "offset": offset,
                         "limit": size,
@@ -95,4 +92,38 @@ def get_attendance_records_details(
             partial(fetch_from_server, size=50)
         )()
 
-    return list(map(extract_attendance_details, all_records))
+    records = list(
+        filter(
+            lambda r: r is not None,
+            map(extract_attendance_details, all_records),
+        )
+    )
+
+    duplicate_records = find_duplicate_attendance(records)
+    return [r for r in records if r["id"] not in duplicate_records]  # pyright: ignore
+
+
+def upsert_attendance(attendance_records: List[AttendanceRecord]):
+    data = [
+        {
+            "id": r["id"],
+            "opuser_id": r["opuserid"],
+            "check_in": r["check_in"],
+            "check_time": r["check_time"].isoformat(),
+            "check_source": r["check_source"],
+        }
+        for r in attendance_records
+    ]
+
+    supabase.table("attendance").upsert(
+        data, on_conflict="opuser_id,check_time"  # pyright: ignore
+    ).execute()
+
+
+def find_duplicate_attendance(records: List[Any]) -> List[str]:
+    df = pd.DataFrame(records)
+    df = df[df.duplicated(["check_time", "opuserid"], keep=False)]  # pyright: ignore
+    if len(df) > 0:
+        return df.iloc[:, 0].tolist()
+    else:
+        return []

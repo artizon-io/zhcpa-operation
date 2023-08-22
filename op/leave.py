@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from typing import Any, List, Literal, Optional, Tuple, TypedDict
 
@@ -7,7 +8,6 @@ from op.opuser import get_opusers_ids
 from op.utils import (
     api,
     generate_depagination_logic,
-    iso_date_sanity_check,
 )
 from op.shared import admin_opuserid, access_token, config, runtime_options
 from alibabacloud_dingtalk.attendance_1_0 import models as dingtalk_attendance_models
@@ -15,6 +15,7 @@ from alibabacloud_dingtalk.attendance_1_0.client import (
     Client as DingtalkAttendanceClient,
 )
 from op.workflows import get_leave_workflow_id
+from op.supabase import supabase
 
 
 class LeaveType(TypedDict):
@@ -153,30 +154,28 @@ def get_leave_records_ids(
 
 
 class LeaveRecord(TypedDict):
-    """
-    All time fields are in ISO format
-    All duration fields are in hours
-    """
-
+    id: str
     opuserid: str
-    record_create_time: int
-    status: Literal["TERMINATED", "APPROVED", "REJECTED"]
+    record_create_time: datetime
+    status: Literal["REVOKED", "APPROVED", "REJECTED"]
     leave_type: str
-    leave_start_time: int
-    leave_end_time: int
-    leave_duration: int
+    leave_start_time: datetime
+    leave_end_time: datetime
     opuser_remark: str
 
 
-def extract_leave_record_details(raw_details: Any) -> LeaveRecord:
+def extract_leave_record_details(raw_details: Any, record_id: str) -> LeaveRecord:
     details = dict()
 
+    details["id"] = record_id
     details["opuserid"] = raw_details.originator_user_id
-    details["record_create_time"] = iso_date_sanity_check(raw_details.create_time)
+    details["record_create_time"] = datetime.fromisoformat(raw_details.create_time)
     if raw_details.status == "COMPLETED":
         details["status"] = "APPROVED" if raw_details.result == "agree" else "REJECTED"
+    elif raw_details.status == "TERMINATED":
+        details["status"] = "REVOKED"
     else:
-        details["status"] = raw_details.status
+        raise Exception("Unknown status")
 
     def get_custom_field(key: str):
         return next(
@@ -187,16 +186,13 @@ def extract_leave_record_details(raw_details: Any) -> LeaveRecord:
 
     time_details = get_custom_field('["开始时间","结束时间"]')
     time_details = json.loads(time_details)
-    details["leave_start_time"] = iso_date_sanity_check(time_details[0])
-    details["leave_end_time"] = iso_date_sanity_check(time_details[1])
+    details["leave_start_time"] = datetime.fromisoformat(time_details[0])
+    details["leave_end_time"] = datetime.fromisoformat(time_details[1])
     details["leave_type"] = time_details[4]
-    match time_details[3]:
-        case "hour":
-            details["leave_duration"] = time_details[2]
-        case "day":
-            details["leave_duration"] = time_details[2] * 8  # TODO: depends on schedule
-        case _:
-            raise Exception("Unknown leave duration unit")
+    # details["leave_duration"] = time_details[2]
+    # details["leave_duration_unit"] = time_details[3]  # "hour" or "day"
+    # if details["leave_duration_unit"] not in ["hour", "day"]:
+    #     raise Exception("Unknown leave duration unit")
     details["opuser_remark"] = get_custom_field("請假事由")
 
     return details  # pyright: ignore
@@ -208,12 +204,14 @@ def get_leave_record_details(
     """
     Get a particular leave record's details
     """
-    return extract_leave_record_details(get_workflow_instance_details(leave_record_id))
+    return extract_leave_record_details(
+        get_workflow_instance_details(leave_record_id), leave_record_id
+    )
 
 
 def get_leave_records(
-    start_time: int,
-    end_time: int,
+    start_time: datetime,
+    end_time: datetime,
     opuserids: Optional[List[str]] = None,
     statuses: Optional[List[str]] = None,
 ) -> List[LeaveRecord]:
@@ -222,10 +220,31 @@ def get_leave_records(
     status i.e. approved, rejected, pending)
     """
 
+    start_time_str = int(start_time.timestamp() * 1000)
+    end_time_str = int(end_time.timestamp() * 1000)
+
     records = get_leave_records_ids(
-        start_time=start_time,
-        end_time=end_time,
+        start_time=start_time_str,
+        end_time=end_time_str,
         opuserids=opuserids,
         statuses=statuses,
     )
     return list(map(get_leave_record_details, records))  # type: ignore
+
+
+def upsert_leave(leave_records: List[LeaveRecord]):
+    data = [
+        {
+            "id": r["id"],
+            "opuser_id": r["opuserid"],
+            "record_create_time": r["record_create_time"].isoformat(),
+            "status": r["status"],
+            "leave_type": r["leave_type"],
+            "leave_start_time": r["leave_start_time"].isoformat(),
+            "leave_end_time": r["leave_end_time"].isoformat(),
+            "opuser_remark": r["opuser_remark"],
+        }
+        for r in leave_records
+    ]
+
+    supabase.table("leave").upsert(data).execute()  # pyright: ignore

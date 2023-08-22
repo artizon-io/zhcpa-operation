@@ -1,9 +1,11 @@
+from datetime import datetime
 from pprint import pprint
-from op.attendance import get_attendance_records_details
-from op.overtime import get_overtime_records
+from op.attendance import get_attendance_records, upsert_attendance
+from op.leave import get_leave_records, upsert_leave
+from op.opuser import get_opuser_records, upsert_opusers
+from op.public_holidays import get_hk_holidays, upsert_holidays
+from op.supabase import supabase
 from op.utils import get_unix_time
-from op.leave import get_leave_records
-from op.opuser import get_opusers_details
 
 
 def main():
@@ -25,8 +27,24 @@ def main():
     # )
     # pprint(attendance_records)
 
-    opusers_details = get_opusers_details()
-    pprint(opusers_details)
+    # opusers_details = get_opusers_details()
+    # pprint(opusers_details)
+    # upsert_opusers(get_opuser_records())
+    # response = supabase.table("opuser").delete().eq("id", 3).execute()
+    # pprint(response)
+    # upsert_holidays(get_hk_holidays(), "hong kong")
+    # upsert_attendance(get_attendance_records(
+    #     start_time=datetime(2023, 8, 17),
+    #     end_time=datetime(2023, 8, 20),
+    # ))
+    upsert_attendance(get_attendance_records(
+        start_time=datetime(2023, 7, 13),
+        end_time=datetime(2023, 7, 14),
+    ))
+    # upsert_leave(get_leave_records(
+    #     start_time=datetime(2023, 7, 20),
+    #     end_time=datetime(2023, 7, 21),
+    # ))
 
 
 if __name__ == "__main__":

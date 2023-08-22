@@ -1,5 +1,6 @@
 import json
 from typing import List, Optional, Tuple, TypedDict
+from op.supabase import supabase
 from op.utils import api, generate_depagination_logic
 from functools import partial
 from op.cache import cache
@@ -92,7 +93,7 @@ def extract_opuser_details(raw_details: Any) -> OpuserDetails:
     return details  # pyright: ignore
 
 
-def get_opusers_details() -> List[OpuserDetails]:
+def get_opuser_records() -> List[OpuserDetails]:
     """
     Get all operation user (i.e. colleagues) details
 
@@ -111,3 +112,21 @@ def get_opusers_details() -> List[OpuserDetails]:
         offset += 50
 
     return list(map(extract_opuser_details, result))
+
+
+def upsert_opusers(opusers: List[OpuserDetails]):
+    data = [
+        {
+            "id": opuser["opuserid"],
+            "name": opuser["name"],
+            "name_chinese": opuser["name_chinese"],
+            "phone": opuser["phone"],
+            "email": opuser["email"],
+            "employee_code": opuser["employee_code"],
+            "department": opuser["department"],
+            "rank": opuser["rank"],
+        }
+        for opuser in opusers
+    ]
+
+    supabase.table("opuser").upsert(data).execute()  # pyright: ignore

@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ColumnHeader } from "./column-header";
 
 export const columns: ColumnDef<
   Database["public"]["Views"]["opuser_monthly_attendance_view"]["Row"]
@@ -56,44 +57,27 @@ export const columns: ColumnDef<
     accessorKey: "name",
     id: "employee_name",
     header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Employee Name
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
+      return <ColumnHeader column={column} title="Employee Name" />;
     },
   },
   {
     id: "attendance_month",
-    accessorKey: "attendance_month",
+    accessorFn: ({ attendance_month }) => new Date(attendance_month!),
+    cell: ({ row }) => {
+      const date = new Date(row.original.attendance_month!);
+      return `${date.getFullYear()}-${String(date.getMonth()).padStart(
+        2,
+        "0"
+      )}`;
+    },
     header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Month
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
+      return <ColumnHeader column={column} title="Month" />;
     },
   },
   {
     id: "attendance_duration",
     header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Attendance Duration
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
+      return <ColumnHeader column={column} title="Attendance Duration" />;
     },
     accessorFn: ({ attendance_duration_hours, attendance_duration_minutes }) =>
       attendance_duration_hours! * 60 + attendance_duration_minutes!,

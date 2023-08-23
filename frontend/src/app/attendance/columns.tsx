@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,24 +12,91 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const columns: ColumnDef<
   Database["public"]["Views"]["opuser_monthly_attendance_view"]["Row"]
 >[] = [
   {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
     accessorKey: "opuser_id",
     header: "Employee ID (internal)",
+    id: "employee_id",
+    // header: ({ column }) => {
+    //   return (
+    //     <Button
+    //       variant="ghost"
+    //       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+    //     >
+    //       Employee ID (internal)
+    //       <ArrowUpDown className="ml-2 h-4 w-4" />
+    //     </Button>
+    //   );
+    // },
   },
   {
     accessorKey: "name",
-    header: "Employee Name",
+    id: "employee_name",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Employee Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
   },
   {
+    id: "attendance_month",
     accessorKey: "attendance_month",
-    header: "Month",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Month
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
   },
   {
-    header: "Attendance Duration",
+    id: "attendance_duration",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Attendance Duration
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    accessorFn: ({ attendance_duration_hours, attendance_duration_minutes }) =>
+      attendance_duration_hours! * 60 + attendance_duration_minutes!,
     cell: ({ row }) => {
       const hours = row.original.attendance_duration_hours;
       const minutes = row.original.attendance_duration_minutes;
@@ -70,5 +137,7 @@ export const columns: ColumnDef<
         </DropdownMenu>
       );
     },
+    enableSorting: false,
+    enableHiding: false,
   },
 ];

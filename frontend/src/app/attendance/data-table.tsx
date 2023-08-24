@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PaginationControls } from "./pagination-controls";
 import { ColumnVisibilityControls } from "./column-visibility-controls";
+import { DailyAttendanceChartDialog } from "./daily-attendance-chart-dialog";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -73,6 +74,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
+      <DailyAttendanceChartDialog />
       <div className="flex items-center py-4">
         <Input
           placeholder="Filter employees by name..."

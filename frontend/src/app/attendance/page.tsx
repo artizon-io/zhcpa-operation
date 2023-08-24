@@ -10,7 +10,7 @@ export default function Page() {
 
   const query = useQuery({
     // @ts-ignore
-    queryKey: ["attendance"],
+    queryKey: ["attendance-monthly"],
     queryFn: () =>
       supabase
         .from("opuser_monthly_attendance_view")

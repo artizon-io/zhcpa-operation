@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ColumnHeader } from "./column-header";
+import { useDailyAttendanceChartDialogStore } from "./daily-attendance-chart-dialog";
+import { DateTime } from "luxon";
 
 export const columns: ColumnDef<
   Database["public"]["Views"]["opuser_monthly_attendance_view"]["Row"]
@@ -62,13 +64,15 @@ export const columns: ColumnDef<
   },
   {
     id: "attendance_month",
-    accessorFn: ({ attendance_month }) => new Date(attendance_month!),
+    accessorFn: ({ attendance_month }) =>
+      DateTime.fromISO(attendance_month!, {
+        setZone: false,
+      }),
     cell: ({ row }) => {
-      const date = new Date(row.original.attendance_month!);
-      return `${date.getFullYear()}-${String(date.getMonth()).padStart(
-        2,
-        "0"
-      )}`;
+      const date = DateTime.fromISO(row.original.attendance_month!, {
+        setZone: false,
+      });
+      return `${date.year}-${String(date.month).padStart(2, "0")}`;
     },
     header: ({ column }) => {
       return <ColumnHeader column={column} title="Month" />;
@@ -94,6 +98,8 @@ export const columns: ColumnDef<
     id: "actions",
     cell: ({ row }) => {
       const opuser_id = row.original.opuser_id;
+      const name = row.original.name;
+      const month = row.original.attendance_month;
 
       return (
         <DropdownMenu>
@@ -111,7 +117,16 @@ export const columns: ColumnDef<
             >
               Copy employee ID
             </DropdownMenuItem>
-            <DropdownMenuItem disabled>
+            <DropdownMenuItem
+              onClick={(e) => {
+                useDailyAttendanceChartDialogStore.getState().open(
+                  opuser_id!,
+                  name!,
+                  // https://moment.github.io/luxon/#/parsing?id=table-of-tokens
+                  DateTime.fromISO(month!)
+                );
+              }}
+            >
               View employee{"'"}s monthly attendance report
             </DropdownMenuItem>
             <DropdownMenuItem disabled>

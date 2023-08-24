@@ -12,9 +12,22 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import Link from "next/link";
 
 export default function Page() {
   const { t } = useTranslation();
 
-  return <div className="relative"></div>;
+  return (
+    <div className="container relative flex items-center justify-center">
+      <p className="text-foreground/60 text-sm">
+        Welcome. You might want to check out the{" "}
+        <Link
+          href="/attendance"
+          className="text-primary underline underline-offset-2"
+        >
+          attendance report
+        </Link>
+      </p>
+    </div>
+  );
 }

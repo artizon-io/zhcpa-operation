@@ -1,8 +1,8 @@
 // https://github.com/shadowwalker/next-pwa#available-options
-const withPWA = require("next-pwa")({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-});
+// module.exports = withPWA({});
 
 /** @type {import('next').NextConfig} */
-module.exports = withPWA({});
+module.exports = {
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+}

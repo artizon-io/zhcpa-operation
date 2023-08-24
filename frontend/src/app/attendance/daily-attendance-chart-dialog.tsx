@@ -524,7 +524,6 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
     attendanceQuery.fetchStatus,
     leaveQuery.fetchStatus,
     groupVisibility,
-    inputs,
   ]);
 
   const chartContainer = useRef<HTMLCanvasElement>(null);

@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useEffect } from "react";
+import { useSessionStore } from "@/components/session-provider";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -44,6 +46,7 @@ export default function Page() {
   const { t } = useTranslation();
   const router = useRouter();
   const supabase = createClientComponentClient<Database>();
+  const { session } = useSessionStore();
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const { data, error } = await signIn(values.email, values.password);
@@ -56,6 +59,7 @@ export default function Page() {
       });
       return;
     }
+    router.push("/");
   }
 
   const signIn = (

@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { redirect, useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useEffect } from "react";
 
 export function AvatarMenu() {
   const session = useSessionStore((state) => state.session);
@@ -57,10 +58,10 @@ export function AvatarMenu() {
             className="text-muted-foreground"
             onClick={(e) => {
               e.preventDefault();
-              if (!supabase)
-                throw Error("Supabase client not found.");
+              if (!supabase) throw Error("Supabase client not found.");
 
               supabase.auth.signOut();
+              router.push("/login");
             }}
             href="/login"
           >

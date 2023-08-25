@@ -33,7 +33,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           "flex w-full bg-background px-3 py-1",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "border border-input",
-          "transition-colors",
+          // "transition-colors",
+          "transition-none",
           className
         )}
         ref={ref}

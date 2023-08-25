@@ -32,8 +32,7 @@ export const metadata: Metadata = {
   ],
   creator: `${siteConfig.name} Team`,
   themeColor: [
-    // { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: light)", color: "black" },
+    { media: "(prefers-color-scheme: light)", color: "white" },
     { media: "(prefers-color-scheme: dark)", color: "black" },
   ],
   openGraph: {
@@ -94,11 +93,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         >
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="system"
             themes={["light", "dark"]}
-            // enableSystem
+            enableSystem
           >
-            <div className="relative flex flex-col min-h-screen">
+            <div className="relative flex flex-col h-full w-full">
               <SiteHeader />
               <div className="flex-1 flex child:flex-1">{children}</div>
               {/* <SiteFooter /> */}

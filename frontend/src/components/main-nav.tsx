@@ -63,7 +63,7 @@ export const MainNav: React.FC<{}> = () => {
         <nav className="flex items-center gap-2">
           {/* <SocialLink href={siteConfig.links.twitter} type="twitter" />
           <SocialLink href={siteConfig.links.linkedIn} type="linkedin" /> */}
-          {/* <ThemeToggle /> */}
+          <ThemeToggle />
           {/* <I18Dropdown /> */}
           {/* <Settings /> */}
           <AvatarMenu />

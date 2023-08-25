@@ -61,7 +61,7 @@ export function AvatarMenu() {
               if (!supabase) throw Error("Supabase client not found.");
 
               supabase.auth.signOut();
-              router.push("/login");
+              router.replace("/login");
             }}
             href="/login"
           >

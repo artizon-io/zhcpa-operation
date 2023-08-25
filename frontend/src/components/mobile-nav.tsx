@@ -19,11 +19,14 @@ import { I18Dropdown } from "@/components/i18-dropdown";
 import { SocialLink } from "@/components/social-link";
 import { CommandMenu } from "@/components/command-menu";
 import { useSessionStore } from "./session-provider";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export function MobileNav() {
   const [open, setOpen] = React.useState(false);
   const { t } = useTranslation();
   const session = useSessionStore((state) => state.session);
+  const supabase = createClientComponentClient();
+  const router = useRouter();
 
   return (
     <div className="container lg:hidden flex h-14 items-center justify-between">
@@ -40,7 +43,7 @@ export function MobileNav() {
         <nav className="flex items-center">
           {/* <SocialLink href={siteConfig.links.twitter} type="twitter" />
           <SocialLink href={siteConfig.links.linkedIn} type="linkedin" /> */}
-          {/* <ThemeToggle /> */}
+          <ThemeToggle />
           {/* <I18Dropdown /> */}
         </nav>
         <Sheet open={open} onOpenChange={setOpen}>
@@ -77,35 +80,19 @@ export function MobileNav() {
                       </MobileLink>
                     )
                 )}
-              </div>
-              <div className="flex flex-col space-y-2">
-                {navConfig.sidebarNav.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col space-y-3 pt-6 items-start"
-                  >
-                    <h4 className="font-medium">{t(item.title)}</h4>
-                    {item?.items?.length
-                      ? item.items.map((item) => (
-                          <React.Fragment key={item.href}>
-                            {!item.disabled &&
-                              (item.href ? (
-                                <MobileLink
-                                  href={item.href}
-                                  external={item.external}
-                                  onOpenChange={setOpen}
-                                  className="text-muted-foreground"
-                                >
-                                  {t(item.title)}
-                                </MobileLink>
-                              ) : (
-                                t(item.title)
-                              ))}
-                          </React.Fragment>
-                        ))
-                      : null}
-                  </div>
-                ))}
+                <MobileLink
+                  href="/login"
+                  external={false}
+                  onOpenChange={setOpen}
+                  className="text-muted-foreground"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    supabase.auth.signOut();
+                    router.replace("/login");
+                  }}
+                >
+                  Log out
+                </MobileLink>
               </div>
             </ScrollArea>
           </SheetContent>

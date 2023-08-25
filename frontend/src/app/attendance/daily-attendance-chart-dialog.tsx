@@ -31,6 +31,7 @@ import {
 import { MixerHorizontalIcon } from "@radix-ui/react-icons";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useQuery } from "@tanstack/react-query";
+import { useTheme } from "next-themes";
 
 export const useDailyAttendanceChartDialogStore = create<{
   open: (opuserId: string, name: string, month: DateTime) => void;
@@ -89,6 +90,8 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
     workingHours: true,
     holiday: true,
   });
+
+  const { theme } = useTheme();
 
   const supabase = createClientComponentClient<Database>();
 
@@ -447,7 +450,7 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
             },
             border: {
               display: true,
-              color: "#555",
+              color: theme === "dark" ? "#555" : "#ccc",
             },
           },
           x2: {
@@ -464,6 +467,12 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
               inputs.month,
               String(inputs.month.daysInMonth)
             ),
+            grid: {
+              display: false,
+            },
+            border: {
+              display: false,
+            },
             ticks: {
               maxRotation: 0,
               autoSkip: false,
@@ -482,7 +491,7 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
             reverse: true,
             grid: {
               display: true,
-              color: "#222",
+              color: theme === "dark" ? "#222" : "#eee",
             },
             border: {
               display: false,
@@ -520,7 +529,12 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
         },
       },
     });
-  }, [attendanceQuery.fetchStatus, leaveQuery.fetchStatus, groupVisibility]);
+  }, [
+    attendanceQuery.fetchStatus,
+    leaveQuery.fetchStatus,
+    groupVisibility,
+    theme,
+  ]);
 
   const chartContainer = useRef<HTMLCanvasElement>(null);
   const chart = useRef<Chart<"bar", Data[], string> | null>(null);

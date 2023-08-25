@@ -35,7 +35,13 @@ const formSchema = z.object({
   }),
 });
 
-export default function Page() {
+export default function Page({
+  searchParams,
+}: {
+  searchParams?: {
+    [key: string]: string;
+  };
+}) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -47,6 +53,7 @@ export default function Page() {
   const router = useRouter();
   const supabase = createClientComponentClient<Database>();
   const { session } = useSessionStore();
+  const returnToUrl = searchParams?.returnTo;
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const { data, error } = await signIn(values.email, values.password);
@@ -59,7 +66,8 @@ export default function Page() {
       });
       return;
     }
-    router.push("/");
+    if (returnToUrl) router.push(returnToUrl);
+    else router.push("/");
   }
 
   const signIn = (

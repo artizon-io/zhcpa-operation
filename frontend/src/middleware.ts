@@ -26,7 +26,19 @@ export async function middleware(req: NextRequest) {
   // cannot detect the pathname changed due to server redirect. So we are opting
   // for client-side route protection for now
   const isApiRoute = req.nextUrl.pathname.startsWith("/api");
-  if (!isApiRoute) return NextResponse.next();
+  if (!isApiRoute) {
+    const requestHeaders = new Headers(req.headers);
+
+    // Store current request pathname in a custom header. Because
+    // NextJS doesn't support getting the pathname in server components
+    requestHeaders.set("x-pathname", req.nextUrl.pathname);
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  }
 
   const res = NextResponse.next();
   const authResult = await getUser(req, res);

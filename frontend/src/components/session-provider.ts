@@ -12,27 +12,12 @@ export const useSessionStore = create<{
   session: null,
 }));
 
-const NO_AUTH_ROUTES = ["/login", "/signup"];
-
 export const SessionProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-  const router = useRouter();
-  const { session } = useSessionStore();
   const supabase = createClientComponentClient();
-  const pathname = usePathname();
-
-  // TODO: add route protection
-
-  // useEffect(() => {
-  //   if (NO_AUTH_ROUTES.includes(pathname) && !session) return;
-  //   if (NO_AUTH_ROUTES.includes(pathname) && session) redirect("/");
-
-  //   // Inside one of AUTH_ROUTES
-  //   if (!session) redirect("/login");
-  // }, [pathname, session]);
 
   const onSessionChange = (session: Session | null) => {
     useSessionStore.setState({ session });

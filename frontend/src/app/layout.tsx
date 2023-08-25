@@ -9,6 +9,9 @@ import { Analytics } from "@/components/analytics";
 import { Toaster } from "@/components/toaster";
 import { ThemeProvider } from "@/components/providers";
 import { SiteFooter } from "@/components/site-footer";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 // https://nextjs.org/docs/app/api-reference/functions/generate-metadata
 // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadata-fields
@@ -29,7 +32,8 @@ export const metadata: Metadata = {
   ],
   creator: `${siteConfig.name} Team`,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
+    // { media: "(prefers-color-scheme: light)", color: "white" },
+    { media: "(prefers-color-scheme: light)", color: "black" },
     { media: "(prefers-color-scheme: dark)", color: "black" },
   ],
   openGraph: {
@@ -55,49 +59,29 @@ export const metadata: Metadata = {
     images: [siteConfig.ogImage],
     creator: siteConfig.twitter.account,
   },
-  icons: {
-    icon: "/icons/favicon.ico",
-    shortcut: "/icons/favicon.png",
-    apple: "/icons/icon-192x192.png",
-  },
-  manifest: `/manifest.json`,
-  appleWebApp: {
-    title: siteConfig.name,
-    capable: true,
-    statusBarStyle: "black-translucent",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: true,
-  },
-  generator: "Next.js",
-  publisher: "Vercel",
-  viewport: {
-    userScalable: false,
-    initialScale: 1,
-    width: "device-width",
-    minimumScale: 1,
-    maximumScale: 1,
-  },
-  applicationName: siteConfig.name,
-  other: {
-    "msapplication-tap-highlight": "no",
-    "msapplication-navbutton-color": "#ffffff",
-    "msapplication-TileColor": "#ffffff",
-    "msapplication-TileImage": "/icons/icon-192x192.png",
-    "msapplication-tooltip": siteConfig.name,
-    "msapplication-starturl": "/",
-    "mobile-web-app-capable": "yes",
-    "theme-color": "#ffffff",
-  },
 };
 
 interface RootLayoutProps {
   children: React.ReactNode;
 }
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const headersList = headers();
+  const pathname = headersList.get("x-pathname");
+
+  const supabase = createServerComponentClient<Database>({
+    cookies,
+  });
+  const userResponse = await supabase.auth.getUser();
+  const user = userResponse.data.user;
+
+  const atSigninRoutes =
+    pathname?.startsWith("/login") || pathname?.startsWith("/signup");
+  const atProtectedRoutes = !atSigninRoutes;
+
+  if (!user && atProtectedRoutes) redirect(`/login?returnTo=${pathname}`);
+  else if (user && atSigninRoutes) redirect("/");
+
   return (
     <>
       <html lang="en" suppressHydrationWarning>

@@ -32,6 +32,11 @@ import { MixerHorizontalIcon } from "@radix-ui/react-icons";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const useDailyAttendanceChartDialogStore = create<{
   open: (opuserId: string, name: string, month: DateTime) => void;
@@ -562,14 +567,14 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
                 <span>{getFormattedDate(inputs.month)}</span>
               </DialogDescription>
             </DialogHeader>
-            <div className="flex flex-row gap-2">
+            <div className="flex flex-row gap-2 items-center">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
                     className={cn(
-                      "ml-auto hidden h-8 lg:flex",
+                      "ml-auto hidden h-8 sm:flex",
                       "focus-visible:ring-0 focus-visible:outline-none outline-none ring-0 shadow-none"
                     )}
                   >
@@ -605,7 +610,7 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
                 <Button
                   variant="outline"
                   className={cn(
-                    "focus-visible:ring-0 focus-visible:outline-none outline-none ring-0 shadow-none hidden xs:block"
+                    "focus-visible:ring-0 focus-visible:outline-none outline-none ring-0 shadow-none hidden sm:block"
                   )}
                   size="sm"
                   onClick={(e) => {

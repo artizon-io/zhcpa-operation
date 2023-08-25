@@ -16,6 +16,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ColumnHeader } from "./column-header";
 import { useDailyAttendanceChartDialogStore } from "./daily-attendance-chart-dialog";
 import { DateTime } from "luxon";
+import { MdInfo } from "react-icons/md";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PiWarningFill } from "react-icons/pi";
 
 export const columns: ColumnDef<
   Database["public"]["Views"]["opuser_monthly_attendance_view"]["Row"]
@@ -89,7 +96,25 @@ export const columns: ColumnDef<
       const hours = row.original.attendance_duration_hours;
       const minutes = row.original.attendance_duration_minutes;
 
-      if (!hours || !minutes) return `N/A`;
+      if (!hours || !minutes)
+        return (
+          <span className="flex flex-row gap-2 items-center">
+            N/A
+            <Tooltip>
+              <TooltipTrigger>
+                <MdInfo className="text-muted-foreground/60" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-[300px]">
+                  The employee{"'"}s attendance record is incomplete, most
+                  likely because they forgot to swipe their card on the machine.
+                  Please contact the system administrator to update the missing
+                  records.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </span>
+        );
 
       return `${hours} hrs ${minutes} mins`;
     },
@@ -110,14 +135,17 @@ export const columns: ColumnDef<
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {/* <DropdownMenuLabel>Actions</DropdownMenuLabel> */}
-            {/* <DropdownMenuSeparator /> */}
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(opuser_id!)}
             >
               Copy employee ID
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>
+              View employee{"'"}s monthly attendance report
+            </DropdownMenuLabel>
             <DropdownMenuItem
+              className="flex flex-row items-center gap-2"
               onClick={(e) => {
                 useDailyAttendanceChartDialogStore.getState().open(
                   opuser_id!,
@@ -127,8 +155,34 @@ export const columns: ColumnDef<
                 );
               }}
             >
-              View employee{"'"}s monthly attendance report
+              Chart
+              <Tooltip>
+                <TooltipTrigger>
+                  <PiWarningFill className="text-warning" />
+                </TooltipTrigger>
+                <TooltipContent className="flex flex-col gap-2 max-w-[300px]">
+                  <p>
+                    This feature is unstable. Expect the following bugs/issues:
+                  </p>
+                  <ul className="list-disc list-inside flex flex-col gap-2">
+                    <li>
+                      At most 1 attendance session per day will be displayed on
+                      the chart. If the employee checks out at noon and comes
+                      back in the afternoon, only either the morning or the
+                      afternoon session will be displayed.
+                    </li>
+                    <li>
+                      All employees are assigned a mock shift schedule for now.
+                      We will be integrating with the actual data soon.
+                    </li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
             </DropdownMenuItem>
+            <DropdownMenuItem disabled onClick={(e) => {}}>
+              Table
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem disabled>
               View employee{"'"}s details
             </DropdownMenuItem>

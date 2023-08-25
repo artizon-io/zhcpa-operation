@@ -58,6 +58,9 @@
     --error: 0 40% 50%;
     --error-foreground: 0 85.7% 97.3%;
 
+    --warning: 39 85% 59%;
+    --warning-foreground: 0 85.7% 97.3%;
+
     --ring: 217.2 32.6% 17.5%;
   }
 }

@@ -12,6 +12,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { MetaThemeDetector } from "@/components/meta-theme-detector";
 
 // https://nextjs.org/docs/app/api-reference/functions/generate-metadata
 // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadata-fields
@@ -102,6 +103,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
             themes={["light", "dark"]}
             enableSystem
           >
+            <MetaThemeDetector />
             <div className="relative flex flex-col screen-height">
               <SiteHeader />
               <div className="flex-1 flex child:flex-1">{children}</div>

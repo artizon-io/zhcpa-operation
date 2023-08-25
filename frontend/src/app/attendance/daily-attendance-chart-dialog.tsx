@@ -91,7 +91,7 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
     holiday: true,
   });
 
-  const { theme } = useTheme();
+  const { resolvedTheme: theme } = useTheme();
 
   const supabase = createClientComponentClient<Database>();
 

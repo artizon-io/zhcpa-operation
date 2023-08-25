@@ -520,11 +520,7 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
         },
       },
     });
-  }, [
-    attendanceQuery.fetchStatus,
-    leaveQuery.fetchStatus,
-    groupVisibility,
-  ]);
+  }, [attendanceQuery.fetchStatus, leaveQuery.fetchStatus, groupVisibility]);
 
   const chartContainer = useRef<HTMLCanvasElement>(null);
   const chart = useRef<Chart<"bar", Data[], string> | null>(null);
@@ -547,7 +543,7 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
           <div className="flex flex-row justify-between">
             <DialogHeader className="gap-1">
               <DialogTitle>Monthly attendance report</DialogTitle>
-              <DialogDescription className="flex flex-col gap-1">
+              <DialogDescription className="flex flex-col gap-1 items-start">
                 <span>{inputs.name}</span>
                 <span>{getFormattedDate(inputs.month)}</span>
               </DialogDescription>
@@ -595,7 +591,7 @@ export const DailyAttendanceChartDialog = ({ ...props }) => {
                 <Button
                   variant="outline"
                   className={cn(
-                    "focus-visible:ring-0 focus-visible:outline-none outline-none ring-0 shadow-none"
+                    "focus-visible:ring-0 focus-visible:outline-none outline-none ring-0 shadow-none hidden xs:block"
                   )}
                   size="sm"
                   onClick={(e) => {

@@ -75,7 +75,7 @@ export function DataTable<TData, TValue>({
   return (
     <div>
       <DailyAttendanceChartDialog />
-      <div className="flex items-center py-4">
+      <div className="flex flex-col-reverse md:flex-row items-center py-4 gap-3">
         <Input
           placeholder="Filter employees by name..."
           value={
@@ -85,7 +85,7 @@ export function DataTable<TData, TValue>({
             // TODO: do this lazily
             table.getColumn("employee_name")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm"
+          className="md:max-w-sm"
         />
         <ColumnVisibilityControls table={table} />
       </div>
@@ -139,7 +139,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between space-x-2 py-4">
+      <div className="flex flex-col md:flex-row items-end md:items-center justify-between space-x-2 py-4 gap-3">
         <div className="flex-1 text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.

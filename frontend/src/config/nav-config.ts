@@ -3,6 +3,7 @@ import { siteConfig } from "./site-config";
 
 interface NavConfig {
   mainNav: MainNavItem[];
+  sidebarNav: SidebarNavItem[];
   footerNav: FooterNavItem[];
 }
 
@@ -17,6 +18,8 @@ export const navConfig: NavConfig = {
       href: "/job",
       disabled: true,
     },
+  ],
+  sidebarNav: [
     {
       title: "Account",
       href: "/account",

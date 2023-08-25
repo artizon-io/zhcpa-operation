@@ -58,6 +58,11 @@ export const metadata: Metadata = {
     images: [siteConfig.ogImage],
     creator: siteConfig.twitter.account,
   },
+  viewport: {
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 interface RootLayoutProps {
@@ -97,7 +102,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
             themes={["light", "dark"]}
             enableSystem
           >
-            <div className="relative flex flex-col h-full w-full">
+            <div className="relative flex flex-col screen-height">
               <SiteHeader />
               <div className="flex-1 flex child:flex-1">{children}</div>
               {/* <SiteFooter /> */}

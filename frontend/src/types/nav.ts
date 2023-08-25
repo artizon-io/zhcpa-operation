@@ -15,6 +15,7 @@ export interface ParentNavItem
 
 export interface MainNavItem extends NavItem {}
 
-export interface SidebarNavItem extends ParentNavItem {}
+// export type SidebarNavItem = ParentNavItem | NavItem;
+export type SidebarNavItem = NavItem;
 
 export interface FooterNavItem extends ParentNavItem {}

@@ -69,7 +69,20 @@ export function MobileNav() {
               <div className="flex flex-col items-start space-y-3">
                 {navConfig.mainNav?.map(
                   (item) =>
-                    item.href && (
+                    (
+                      <MobileLink
+                        key={`mainNav-${item.href}`}
+                        href={item.href}
+                        external={item.external}
+                        onOpenChange={setOpen}
+                      >
+                        {t(item.title)}
+                      </MobileLink>
+                    )
+                )}
+                {navConfig.sidebarNav?.map(
+                  (item) =>
+                    (
                       <MobileLink
                         key={`mainNav-${item.href}`}
                         href={item.href}

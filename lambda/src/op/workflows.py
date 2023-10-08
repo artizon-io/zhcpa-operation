@@ -1,5 +1,7 @@
 from functools import partial
 from typing import List, Optional, Tuple
+from op.logger import logger
+from op.supabase import supabase
 
 from op.utils import generate_depagination_logic
 from op.shared import admin_opuserid, access_token, config, runtime_options
@@ -7,6 +9,7 @@ from alibabacloud_dingtalk.workflow_1_0 import models as dingtalk_workflow_model
 from alibabacloud_dingtalk.workflow_1_0.client import (
     Client as DingtalkWorkflowClient,
 )
+from op.logger import logger
 from op.cache import cache
 
 
@@ -43,34 +46,47 @@ def get_workflows() -> (
 
 
 def get_leave_workflow_id() -> str:
-    return cache["workflows"]["leave_workflow_id"]
+    # return cache["workflows"]["leave_workflow_id"]
+
+    # workflows = get_workflows()
+
+    # leave_workflow = next(w for w in workflows if w.flow_title == "Leave")
+    # id = leave_workflow.process_code
+
+    # return id
+
+    logger.debug("Retrieving leave workflow ID")
+
+    return supabase.table("workflow_id_cache").select("workflow_id").eq(
+        "workflow_name", "leave"
+    ).single().execute().data["workflow_id"]
 
 
 def get_overtime_workflow_id() -> str:
     return cache["workflows"]["overtime_workflow_id"]
 
 
-workflow_cache = None
-try:
-    workflow_cache = cache["workflows"]
-except KeyError:
-    pass
+# workflow_cache = None
+# try:
+#     workflow_cache = cache["workflows"]
+# except KeyError:
+#     pass
 
-if not workflow_cache:
-    workflows = get_workflows()
+# if not workflow_cache:
+#     workflows = get_workflows()
 
-    leave_workflow = next(w for w in workflows if w.flow_title == "Leave")
-    overtime_workflow = next(
-        w for w in workflows if w.flow_title == "(HKD) 8月-Petty Cash & OT Claim"
-    )
+#     leave_workflow = next(w for w in workflows if w.flow_title == "Leave")
+#     overtime_workflow = next(
+#         w for w in workflows if w.flow_title == "(HKD) 8月-Petty Cash & OT Claim"
+#     )
 
-    cache["workflows"] = {
-        "leave_workflow_id": f"{leave_workflow.process_code}",
-        "overtime_workflow_id": f"{overtime_workflow.process_code}",
-    }
+#     cache["workflows"] = {
+#         "leave_workflow_id": f"{leave_workflow.process_code}",
+#         "overtime_workflow_id": f"{overtime_workflow.process_code}",
+#     }
 
-    with open("cache.ini", "w") as configfile:
-        cache.write(configfile)
+#     with open("cache.ini", "w") as configfile:
+#         cache.write(configfile)
 
 
 def get_workflow_instances_ids(
@@ -84,6 +100,7 @@ def get_workflow_instances_ids(
     """
     https://open-dev.dingtalk.com/apiExplorer#/?devType=org&api=workflow_1.0%23ListProcessInstanceIds
     """
+    logger.debug("Fetching workflow instances ids")
 
     def fetch_from_server(
         offset: int,

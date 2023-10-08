@@ -1,13 +1,15 @@
 from datetime import datetime
 from functools import partial
 from typing import Any, List, Optional, TypedDict
+from op.logger import logger
 from op.opuser import get_opusers_ids
-from op.supabase import supabase
+from op.supabase import get_prev_checkpoint_date, supabase, upsert_checkpoint_date
 import pandas as pd
 
 
 from op.utils import (
     api,
+    decompose_into_small_timeframe,
     generate_depagination_logic,
     parse_unix_time,
 )
@@ -116,7 +118,9 @@ def upsert_attendance(attendance_records: List[AttendanceRecord]):
     ]
 
     supabase.table("attendance").upsert(
-        data, on_conflict="opuser_id,check_time"  # pyright: ignore
+        data,
+        on_conflict="opuser_id,check_time",
+        ignore_duplicates=True,  # pyright: ignore
     ).execute()
 
 
@@ -127,3 +131,23 @@ def find_duplicate_attendance(records: List[Any]) -> List[str]:
         return df.iloc[:, 0].tolist()
     else:
         return []
+
+
+def upsert_new_attendance():
+    prev_checkpoint_date = get_prev_checkpoint_date("attendance")
+    today_date = datetime.now()
+
+    logger.info("Fetching all new attendance records")
+
+    records = decompose_into_small_timeframe(
+        get_attendance_records,
+        start_date=prev_checkpoint_date,
+        end_date=today_date,
+        timeframe=7,
+    )
+
+    logger.info(f"Upserting {len(records)} new attendance records")
+
+    upsert_attendance(records)
+
+    upsert_checkpoint_date("attendance", today_date)

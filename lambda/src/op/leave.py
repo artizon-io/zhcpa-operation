@@ -1,12 +1,14 @@
 from datetime import datetime
 import json
 from typing import Any, List, Literal, Optional, Tuple, TypedDict
+from op.logger import logger
 
 from op.workflows import get_workflow_instance_details, get_workflow_instances_ids
 
 from op.opuser import get_opusers_ids
 from op.utils import (
     api,
+    decompose_into_small_timeframe,
     generate_depagination_logic,
 )
 from op.shared import admin_opuserid, access_token, config, runtime_options
@@ -15,7 +17,7 @@ from alibabacloud_dingtalk.attendance_1_0.client import (
     Client as DingtalkAttendanceClient,
 )
 from op.workflows import get_leave_workflow_id
-from op.supabase import supabase
+from op.supabase import get_prev_checkpoint_date, supabase, upsert_checkpoint_date
 
 
 class LeaveType(TypedDict):
@@ -157,7 +159,7 @@ class LeaveRecord(TypedDict):
     id: str
     opuserid: str
     record_create_time: datetime
-    status: Literal["REVOKED", "APPROVED", "REJECTED"]
+    status: Literal["REVOKED", "APPROVED", "REJECTED", "PENDING"]
     leave_type: str
     leave_start_time: datetime
     leave_end_time: datetime
@@ -174,8 +176,16 @@ def extract_leave_record_details(raw_details: Any, record_id: str) -> LeaveRecor
         details["status"] = "APPROVED" if raw_details.result == "agree" else "REJECTED"
     elif raw_details.status == "TERMINATED":
         details["status"] = "REVOKED"
+    elif raw_details.status == "RUNNING":
+        details["status"] = "PENDING"
     else:
-        raise Exception("Unknown status")
+        raise Exception(
+            f"Unknown status {raw_details.status} for leave record id {record_id}"
+        )
+        # logger.warn(
+        #     f"Unknown status {raw_details.status} for leave record id {record_id}. Defaulting to 'REVOKED'"
+        # )
+        # details["status"] = "REVOKED"
 
     def get_custom_field(key: str):
         return next(
@@ -223,12 +233,17 @@ def get_leave_records(
     start_time_str = int(start_time.timestamp() * 1000)
     end_time_str = int(end_time.timestamp() * 1000)
 
+    logger.info("Fetching leave records IDs")
+
     records = get_leave_records_ids(
         start_time=start_time_str,
         end_time=end_time_str,
         opuserids=opuserids,
         statuses=statuses,
     )
+
+    logger.info("Fetching leave records details")
+
     return list(map(get_leave_record_details, records))  # type: ignore
 
 
@@ -248,3 +263,23 @@ def upsert_leave(leave_records: List[LeaveRecord]):
     ]
 
     supabase.table("leave").upsert(data).execute()  # pyright: ignore
+
+
+def upsert_new_leave():
+    prev_checkpoint_date = get_prev_checkpoint_date("leave")
+    today_date = datetime.now()
+
+    logger.info("Fetching all new leave records")
+
+    records = decompose_into_small_timeframe(
+        get_leave_records,
+        start_date=prev_checkpoint_date,
+        end_date=today_date,
+        timeframe=7,
+    )
+
+    logger.info(f"Upserting {len(records)} new leave records")
+
+    upsert_leave(records)
+
+    upsert_checkpoint_date("leave", today_date)

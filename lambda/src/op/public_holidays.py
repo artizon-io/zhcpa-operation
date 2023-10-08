@@ -3,6 +3,7 @@ from typing import List, Literal, Tuple, TypedDict
 from op.utils import get_unix_time, parse_unix_time
 from datetime import datetime
 from op.supabase import supabase
+from op.logger import logger
 
 
 class Holiday(TypedDict):
@@ -55,3 +56,8 @@ def upsert_holidays(
     ]
 
     supabase.table("holiday").upsert(data).execute()  # pyright: ignore
+
+
+def upsert_all_regions_holidays():
+    logger.info("Upserting HK holidays")
+    upsert_holidays(get_hk_holidays(), "hong kong")

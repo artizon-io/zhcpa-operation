@@ -1,7 +1,8 @@
-import datetime
 from requests import request
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from op.logger import logger
 from op.shared import access_token
+from datetime import datetime, timedelta
 
 
 def api(
@@ -17,6 +18,7 @@ def api(
     For old Dingtalk API
     """
     try:
+        logger.debug(f"Making API request to endpoint: {endpoint}")
         response = request(
             method,
             endpoint,
@@ -50,6 +52,7 @@ def generate_depagination_logic(
         offset: Optional[int] = 0
         while offset is not None:
             partial_data, offset = fetch_from_server(offset)
+            logger.debug(f"Retrieved {len(partial_data)} items")
             all_data.extend(partial_data)
 
         return all_data
@@ -75,12 +78,49 @@ def generate_depagination_logic_by_token(
 
 
 def get_unix_time(year: int, month: int, day: int) -> int:
-    return int(datetime.datetime(year, month, day).timestamp() * 1000)
+    return int(datetime(year, month, day).timestamp() * 1000)
 
 
-def parse_unix_time(unix_time: int) -> datetime.datetime:
-    return datetime.datetime.fromtimestamp(unix_time / 1000)
+def parse_unix_time(unix_time: int) -> datetime:
+    return datetime.fromtimestamp(unix_time / 1000)
 
 
 def iso_date_sanity_check(date: str) -> str:
-    return datetime.datetime.fromisoformat(date).isoformat()
+    return datetime.fromisoformat(date).isoformat()
+
+
+def decompose_into_small_timeframe(
+    f: Callable[[datetime, datetime], List[Any]],
+    start_date: datetime,
+    end_date: datetime,
+    timeframe: int,
+    round_down_end_date: bool = True,
+) -> List[Any]:
+    records: List[Any] = []
+    date_pairs: List[Tuple[datetime, datetime]] = []
+
+    if round_down_end_date:
+        end_date = datetime(end_date.year, end_date.month, end_date.day)
+
+    if (end_date - start_date).days >= timeframe:
+        week = timedelta(days=timeframe)
+
+        temp_date = start_date
+
+        while (end_date - temp_date).days >= 7:
+            date_pairs.append((temp_date, temp_date + week))
+            temp_date += week
+
+        date_pairs.append((temp_date, end_date))
+
+    else:
+        date_pairs = [(start_date, end_date)]
+
+    for pair in date_pairs:
+        logger.debug(f"Fetching records for timeframe {pair[0]} => {pair[1]}")
+        records += f(
+            pair[0],
+            pair[1],
+        )
+
+    return records

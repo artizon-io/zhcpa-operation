@@ -5,6 +5,8 @@ from op.utils import api, generate_depagination_logic
 from functools import partial
 from op.cache import cache
 from typing import Any
+from pprint import pformat
+from op.logger import logger
 
 
 def get_opusers_ids(
@@ -13,8 +15,8 @@ def get_opusers_ids(
     """
     Get all operation user (i.e. colleagues) ids
     """
-    if opusers_cache:
-        return json.loads(opusers_cache["all_opuserids"])
+    # if opusers_cache:
+    #     return json.loads(opusers_cache["all_opuserids"])
 
     def fetch_from_server(offset: int, size: int) -> Tuple[List[str], Optional[int]]:
         try:
@@ -37,21 +39,21 @@ def get_opusers_ids(
     return generate_depagination_logic(partial(fetch_from_server, size=50))()
 
 
-opusers_cache = None
-try:
-    opusers_cache = cache["opusers"]
-except KeyError:
-    pass
+# opusers_cache = None
+# try:
+#     opusers_cache = cache["opusers"]
+# except KeyError:
+#     pass
 
-if not opusers_cache:
-    all_opuserids = get_opusers_ids()
+# if not opusers_cache:
+#     all_opuserids = get_opusers_ids()
 
-    cache["opusers"] = {
-        "all_opuserids": json.dumps(all_opuserids),
-    }
+#     cache["opusers"] = {
+#         "all_opuserids": json.dumps(all_opuserids),
+#     }
 
-    with open("cache.ini", "w") as configfile:
-        cache.write(configfile)
+#     with open("cache.ini", "w") as configfile:
+#         cache.write(configfile)
 
 
 class OpuserDetails(TypedDict):
@@ -101,14 +103,18 @@ def get_opuser_records() -> List[OpuserDetails]:
     """
     result: List[OpuserDetails] = []
 
+    opusers_ids = get_opusers_ids()
+
     offset = 0
-    while offset < len(get_opusers_ids()):
-        result += api(
+    while offset < len(opusers_ids):
+        partial_data = api(
             "https://oapi.dingtalk.com/topapi/smartwork/hrm/employee/list",
             {
-                "userid_list": ",".join(get_opusers_ids()[offset : offset + 50]),
+                "userid_list": ",".join(opusers_ids[offset : offset + 50]),
             },
         )
+        logger.debug(f"Retrieved {len(partial_data)} items")
+        result += partial_data
         offset += 50
 
     return list(map(extract_opuser_details, result))
@@ -130,3 +136,10 @@ def upsert_opusers(opusers: List[OpuserDetails]):
     ]
 
     supabase.table("opuser").upsert(data).execute()  # pyright: ignore
+
+
+def upsert_all_opusers():
+    logger.info("Fetching all opusers records")
+    records = get_opuser_records()
+    logger.info(f"Upserting all {len(records)} opusers")
+    upsert_opusers(records)

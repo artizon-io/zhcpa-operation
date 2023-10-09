@@ -19,5 +19,11 @@ terraform {
     }
   }
 
+  backend "s3" {
+    bucket = "artizon.terraform.tfstate"
+    key    = "zhop"
+    region = "ap-east-1"
+  }
+
   required_version = "~> 1.6.0"
 }

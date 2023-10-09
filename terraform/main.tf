@@ -9,11 +9,16 @@ data "aws_ecr_authorization_token" "this" {}
 #   name = "zhop-etl"
 # }
 
+data "aws_secretsmanager_secret_version" "this" {
+  secret_id = "zhop/${var.env_name}"
+}
+
 locals {
   ecr_address    = format("%v.dkr.ecr.%v.amazonaws.com", data.aws_caller_identity.this.account_id, var.aws_region)
   ecr_repo       = aws_ecr_repository.this.id
   image_tag      = var.env_name
   ecr_image_name = format("%v/%v:%v", local.ecr_address, local.ecr_repo, local.image_tag)
+  secrets        = jsondecode(data.aws_secretsmanager_secret_version.this.secret_string)
 }
 
 provider "aws" {
@@ -65,7 +70,7 @@ resource "aws_ecr_repository" "this" {
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_lifecycle_policy
 resource "aws_ecr_lifecycle_policy" "this" {
   repository = local.ecr_repo
-  policy     = jsonencode({
+  policy = jsonencode({
     "rules" : [
       {
         "rulePriority" : 1,
@@ -95,10 +100,10 @@ resource "aws_ecr_lifecycle_policy" "this" {
 # }
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function
-resource "aws_lambda_function" "lambda_fn" {
+resource "aws_lambda_function" "this" {
   function_name = "zhop-etl-${var.env_name}"
   timeout       = 10 # seconds
-  image_uri     = "${docker_registry_image.this.name}"
+  image_uri     = docker_registry_image.this.name
   package_type  = "Image"
 
   role = aws_iam_role.lambda_role.arn
@@ -125,4 +130,36 @@ resource "aws_iam_role" "lambda_role" {
       },
     ]
   })
+}
+
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group
+resource "aws_cloudwatch_log_group" "lambda_log_group" {
+  name              = aws_lambda_function.this.function_name
+  retention_in_days = 7
+  lifecycle {
+    prevent_destroy = false
+  }
+}
+
+resource "aws_iam_policy" "lambda_log_policy" {
+  name = "${aws_lambda_function.this.function_name}-log-policy"
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        Action : [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Effect : "Allow",
+        Resource : "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_group_policy_attachment
+resource "aws_iam_role_policy_attachment" "lambda_cloudwatch_policy_attachment" {
+  role       = aws_iam_role.lambda_role.id
+  policy_arn = aws_iam_policy.lambda_log_policy.arn
 }

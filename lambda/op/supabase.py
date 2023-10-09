@@ -1,12 +1,13 @@
 from datetime import datetime
 from op.logger import logger
 from supabase.client import create_client, Client
-from op.shared import get_env
+from op.env import get_env
 from dateutil.parser import parse
+from op.secret import secrets
 
-url: str = get_env("SUPABASE_URL")
-key: str = get_env("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+supabase_url: str = get_env("SUPABASE_URL")
+supabase_secret_key: str = secrets["SUPABASE_SECRET_KEY"]
+supabase: Client = create_client(supabase_url, supabase_secret_key)
 
 
 def get_prev_checkpoint_date(table: str) -> datetime:

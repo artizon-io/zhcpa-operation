@@ -8,5 +8,6 @@ RUN  pip3 install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
 COPY op/ ${LAMBDA_TASK_ROOT}/op/
 
 COPY lambda.py ${LAMBDA_TASK_ROOT}
+COPY .env ${LAMBDA_TASK_ROOT}
 
 CMD [ "lambda.handler" ]

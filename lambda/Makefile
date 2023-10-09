@@ -24,7 +24,7 @@ ECR_URL = $(ECR_HOME_URL)/$(AWS_ECR_REPO):$(TAG)
 
 docker/build :
 	poetry export -f requirements.txt > requirements.txt
-	docker build -t $(DOCKER_BUILD) .
+	docker build --platform linux/amd64 -t $(DOCKER_BUILD) .
 
 docker/push : docker/build
 	# Docker login with password from stdin
@@ -33,6 +33,7 @@ docker/push : docker/build
 	docker tag $(DOCKER_BUILD) $(ECR_URL)
 	docker push $(ECR_URL)
 
+# Need to manually pass credentials environment variables using --env-file or --env
 docker/run :
 	docker run -p $(PORT):8080 $(ECR_URL)
 

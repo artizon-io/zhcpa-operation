@@ -5,11 +5,10 @@ variable "aws_region" {
   default = "ap-east-1"
 }
 
-variable "env_name" {
-  description = "Environment name"
+variable "ver" {
+  description = "Version"
 
   type = string
-  default = "dev"
 }
 
 variable "source_path" {

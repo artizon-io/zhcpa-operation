@@ -14,10 +14,10 @@ def get_secret() -> Dict[str, str]:
     )
 
     try:
-        res = client.get_secret_value(SecretId=f"{project_name}/{env}")
+        res = client.get_secret_value(SecretId=f"{project_name}")
     except ClientError as e:
         error_code = e.response["Error"]["Code"]
-        raise Exception(f"Fail to fetch secret {project_name}/{env}\n{error_code}")
+        raise Exception(f"Fail to fetch secret {project_name}\n{error_code}")
     else:
         # Secrets Manager decrypts the secret value using the associated KMS CMK
         # Depending on whether the secret was a string or binary, only one of these fields will be populated

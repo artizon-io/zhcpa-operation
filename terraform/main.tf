@@ -10,13 +10,13 @@ data "aws_ecr_authorization_token" "this" {}
 # }
 
 data "aws_secretsmanager_secret_version" "this" {
-  secret_id = "zhop/${var.env_name}"
+  secret_id = "zhop"
 }
 
 locals {
   ecr_address    = format("%v.dkr.ecr.%v.amazonaws.com", data.aws_caller_identity.this.account_id, var.aws_region)
   ecr_repo       = aws_ecr_repository.this.id
-  image_tag      = var.env_name
+  image_tag      = var.ver
   ecr_image_name = format("%v/%v:%v", local.ecr_address, local.ecr_repo, local.image_tag)
   secrets        = jsondecode(data.aws_secretsmanager_secret_version.this.secret_string)
 }
@@ -45,6 +45,7 @@ resource "docker_image" "this" {
     context    = var.source_path
     dockerfile = var.docker_file_path
     build_args = var.build_args
+    platform   = "linux/amd64"
   }
 }
 
@@ -58,7 +59,7 @@ resource "docker_registry_image" "this" {
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository
 resource "aws_ecr_repository" "this" {
-  name                 = "zhop-etl"
+  name                 = "etl"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -101,8 +102,8 @@ resource "aws_ecr_lifecycle_policy" "this" {
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function
 resource "aws_lambda_function" "this" {
-  function_name = "zhop-etl-${var.env_name}"
-  timeout       = 10 # seconds
+  function_name = "etl"
+  timeout       = 300 # seconds
   image_uri     = docker_registry_image.this.name
   package_type  = "Image"
 
@@ -110,14 +111,14 @@ resource "aws_lambda_function" "this" {
 
   environment {
     variables = {
-      ENVIRONMENT = var.env_name
+      VERSION = var.ver
     }
   }
 }
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
 resource "aws_iam_role" "lambda_role" {
-  name = "zhop-etl-${var.env_name}"
+  name = "etl"
 
   assume_role_policy = jsonencode({
     Statement = [
@@ -127,8 +128,22 @@ resource "aws_iam_role" "lambda_role" {
         Principal = {
           Service = "lambda.amazonaws.com"
         }
-      },
+      }
     ]
+  })
+}
+
+resource "aws_iam_role_policy" "secretmanager_policy" {
+  name = "zhop-secretmanager-read"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version : "2012-10-17",
+    Statement : [{
+      "Effect" : "Allow",
+      "Action" : "secretsmanager:GetSecretValue",
+      "Resource" : "arn:aws:secretsmanager:ap-east-1:339752077142:secret:zhop-cYX5J0"
+    }]
   })
 }
 
@@ -142,7 +157,7 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
 }
 
 resource "aws_iam_policy" "lambda_log_policy" {
-  name = "${aws_lambda_function.this.function_name}-log-policy"
+  name = "log"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [

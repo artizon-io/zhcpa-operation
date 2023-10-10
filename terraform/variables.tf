@@ -11,6 +11,28 @@ variable "ver" {
   type = string
 }
 
+variable "project_name" {
+  description = "Name of the project"
+
+  type = string
+  default = "zhop"
+}
+
+variable "lambda_name" {
+  description = "Name of the lambda function"
+
+  type = string
+  default = "etl"
+}
+
+variable "lambda_timeout" {
+  description = "Timeout of the lambda function"
+
+  type = number
+  default = 300
+  
+}
+
 variable "source_path" {
   description = "Root path of the lambda workspace"
 

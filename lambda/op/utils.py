@@ -1,8 +1,10 @@
+from pprint import pprint
 from requests import request
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from op.logger import logger
 from op.shared import access_token
 from datetime import datetime, timedelta
+import pandas as pd
 
 
 def api(
@@ -60,21 +62,20 @@ def generate_depagination_logic(
     return wrapper
 
 
-# Not used
-def generate_depagination_logic_by_token(
-    fetch_from_server: Callable[[str], Tuple[List[Any], str]]
-):
-    def wrapper():
-        all_data: List[Any] = []
-        first_request: bool = True
-        offset: str = ""
-        while offset != "" or first_request:
-            partial_data, offset = fetch_from_server(offset)
-            all_data.extend(partial_data)
+# def generate_depagination_logic_by_token(
+#     fetch_from_server: Callable[[str], Tuple[List[Any], str]]
+# ):
+#     def wrapper():
+#         all_data: List[Any] = []
+#         first_request: bool = True
+#         offset: str = ""
+#         while offset != "" or first_request:
+#             partial_data, offset = fetch_from_server(offset)
+#             all_data.extend(partial_data)
 
-        return all_data
+#         return all_data
 
-    return wrapper
+#     return wrapper
 
 
 def get_unix_time(year: int, month: int, day: int) -> int:
@@ -124,3 +125,31 @@ def decompose_into_small_timeframe(
         )
 
     return records
+
+
+def deduplicate_records_by_id(records: List[Any]) -> List[Any]:
+    df = pd.DataFrame(records)
+    df = df.drop_duplicates("id", keep="first")
+
+    count = len(records) - len(df)
+    if count > 0:
+        logger.warning(f"Ignored {count} records with duplicate ids")
+
+    if len(df) == 0:
+        return records
+
+    return df.to_dict(orient="records")
+
+
+def deduplicate_records(records: List[Any], columns: List[str]) -> List[str]:
+    df = pd.DataFrame(records)
+    df = df[df.duplicated(columns, keep="first")]  # pyright: ignore
+
+    if len(df) == 0:
+        return records
+
+    dup_records_ids = df.iloc[:, 0].tolist()
+    for id in dup_records_ids:
+        logger.warning(f"Ignored record {id} with duplicate {columns}")
+
+    return [r for r in records if r["id"] not in dup_records_ids]  # pyright: ignore

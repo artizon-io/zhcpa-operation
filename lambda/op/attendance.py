@@ -4,12 +4,13 @@ from typing import Any, List, Optional, TypedDict
 from op.logger import logger
 from op.opuser import get_opusers_ids
 from op.supabase import get_prev_checkpoint_date, supabase, upsert_checkpoint_date
-import pandas as pd
 
 
 from op.utils import (
     api,
     decompose_into_small_timeframe,
+    deduplicate_records,
+    deduplicate_records_by_id,
     generate_depagination_logic,
     parse_unix_time,
 )
@@ -101,8 +102,7 @@ def get_attendance_records(
         )
     )
 
-    duplicate_records = find_duplicate_attendance(records)
-    return [r for r in records if r["id"] not in duplicate_records]  # pyright: ignore
+    return records
 
 
 def upsert_attendance(attendance_records: List[AttendanceRecord]):
@@ -120,17 +120,7 @@ def upsert_attendance(attendance_records: List[AttendanceRecord]):
     supabase.table("attendance").upsert(
         data,
         on_conflict="opuser_id,check_time",
-        ignore_duplicates=True,  # pyright: ignore
     ).execute()
-
-
-def find_duplicate_attendance(records: List[Any]) -> List[str]:
-    df = pd.DataFrame(records)
-    df = df[df.duplicated(["check_time", "opuserid"], keep=False)]  # pyright: ignore
-    if len(df) > 0:
-        return df.iloc[:, 0].tolist()
-    else:
-        return []
 
 
 def upsert_new_attendance():
@@ -145,6 +135,13 @@ def upsert_new_attendance():
         end_date=today_date,
         timeframe=7,
     )
+
+    logger.debug(f"Upserting {len(records)} new attendance records")
+
+    records = deduplicate_records(records, ["check_time", "opuserid"])
+    records = deduplicate_records_by_id(records)
+
+    records = deduplicate_records(records)
 
     logger.info(f"Upserting {len(records)} new attendance records")
 

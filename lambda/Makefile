@@ -18,7 +18,7 @@ ECR_HOME_URL = $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
 ECR_URL = $(ECR_HOME_URL)/$(DOCKER_BUILD)
 
 # Tell make that these are not files
-.PHONY : docker/build docker/push docker/run docker/test lambda/invoke
+.PHONY : docker/build docker/push docker/run docker/test lambda/invoke test run
 
 docker/build :
 	poetry export -f requirements.txt > requirements.txt
@@ -39,5 +39,14 @@ docker/run :
 docker/test :
 	curl -XPOST 'http://localhost:$(PORT)/2015-03-31/functions/function/invocations' -d '{}'
 
-lambda/invoke:
+lambda/invoke :
 	aws lambda invoke --function-name $(LAMBDA_NAME) out
+
+test :
+	poetry run pytest
+
+test/last-failed :
+	poetry run pytest --lf
+
+run :
+	poetry run python -m op

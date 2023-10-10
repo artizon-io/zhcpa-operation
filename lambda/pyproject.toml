@@ -5,7 +5,7 @@ description = ""
 authors = ["Sam Sze <mingsum.sam@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "zhcpa_operation"}]
+packages = [{ include = "zhcpa_operation" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -20,6 +20,7 @@ boto3 = "^1.28.62"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.24.0"
+pytest = "^7.4.2"
 
 [build-system]
 requires = ["poetry-core"]
@@ -34,3 +35,8 @@ reportUnusedVariable = "warning"
 reportUnusedFunction = "warning"
 reportUnknownVariableType = "warning"
 reportUnknownMemberType = "warning"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["*"]

@@ -9,6 +9,7 @@ from op.opuser import get_opusers_ids
 from op.utils import (
     api,
     decompose_into_small_timeframe,
+    deduplicate_records,
     generate_depagination_logic,
 )
 from op.shared import admin_opuserid, access_token, config, runtime_options

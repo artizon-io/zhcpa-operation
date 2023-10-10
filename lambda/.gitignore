@@ -1,7 +1,8 @@
 .venv
-.env*
+*.env*
 **/__pycache__/
 cache.ini
 examples/
 requirements.txt
 .pytest_cache/
+VERSION

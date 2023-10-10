@@ -5,20 +5,42 @@ data "aws_caller_identity" "this" {}
 data "aws_ecr_authorization_token" "this" {}
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/cloudwatch_log_group
-data "aws_cloudwatch_log_group" "this" {
-  name = var.lambda_name
-}
+# data "aws_cloudwatch_log_group" "this" {
+#   name = var.lambda_name
+# }
 
 data "aws_secretsmanager_secret_version" "this" {
   secret_id = var.project_name
 }
 
+// https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external
+# data "external" "app_version" {
+#   program = ["poetry", "version --short"]
+#   working_dir = var.source_path
+# }
+
+# resource "null_resource" "app_version" {
+#   # https://developer.hashicorp.com/terraform/language/resources/provisioners/local-exec
+#   provisioner "local-exec" {
+#     command     = "poetry version --short > VERSION"
+#     working_dir = var.source_path
+#   }
+# }
+
+# data "local_file" "app_version" {
+#   filename   = "${var.source_path}/VERSION"
+#   depends_on = [null_resource.app_version]
+# }
+
 locals {
-  ecr_address    = format("%v.dkr.ecr.%v.amazonaws.com", data.aws_caller_identity.this.account_id, var.aws_region)
-  ecr_repo       = aws_ecr_repository.this.id
-  image_tag      = var.ver
-  ecr_image_name = format("%v/%v:%v", local.ecr_address, local.ecr_repo, local.image_tag)
+  ecr_url    = format("%v.dkr.ecr.%v.amazonaws.com", data.aws_caller_identity.this.account_id, var.aws_region)
+  ecr_image_url = format("%v/%v:%v", local.ecr_url, aws_ecr_repository.this.id, local.app_version)
+  app_version    = var.app_version
+  # app_version    = trim(data.local_file.app_version.content, " ")
+  # app_version = data.external.app_version.result
   secrets        = jsondecode(data.aws_secretsmanager_secret_version.this.secret_string)
+  # envs             = { for tuple in regexall("(.*)=(.*)", file(".env")) : tuple[0] => sensitive(tuple[1]) }
+  # bump_app_version = coalesce(local.envs["BUMP_APP_VERSION"], true)
 }
 
 provider "aws" {
@@ -29,27 +51,39 @@ provider "docker" {
   host = format("unix:///Users/%v/.docker/run/docker.sock", var.host_username)
 
   registry_auth {
-    address  = local.ecr_address
+    address  = local.ecr_url
     username = data.aws_ecr_authorization_token.this.user_name
     password = data.aws_ecr_authorization_token.this.password
   }
 }
 
+provider "null" {
+}
+
+resource "null_resource" "generate_requirement_txt" {
+  # https://developer.hashicorp.com/terraform/language/resources/provisioners/local-exec
+  provisioner "local-exec" {
+    command     = "poetry export -f requirements.txt > requirements.txt"
+    working_dir = var.source_path
+  }
+}
+
 # https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs/resources/image
 resource "docker_image" "this" {
-  name         = local.ecr_image_name
+  name         = local.ecr_image_url
   force_remove = true
 
   build {
     # https://docs.docker.com/build/building/context/
     context    = var.source_path
-    dockerfile = var.docker_file_path
-    build_args = var.build_args
+    dockerfile = "Dockerfile"
+    build_args = {}
     platform   = "linux/amd64"
   }
+
+  depends_on = [null_resource.generate_requirement_txt]
 }
 
-# Manages the lifecycle of docker image in a registry
 # https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs/resources/registry_image
 resource "docker_registry_image" "this" {
   name = docker_image.this.name
@@ -68,9 +102,10 @@ resource "aws_ecr_repository" "this" {
   }
 }
 
+# Manages the lifecycle of docker image in a registry
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_lifecycle_policy
 resource "aws_ecr_lifecycle_policy" "this" {
-  repository = local.ecr_repo
+  repository = aws_ecr_repository.this.id
   policy = jsonencode({
     "rules" : [
       {
@@ -96,18 +131,18 @@ resource "aws_lambda_function" "this" {
   image_uri     = docker_registry_image.this.name
   package_type  = "Image"
 
-  role = aws_iam_role.lambda_role.arn
+  role = aws_iam_role.this.arn
 
   environment {
     variables = {
-      VERSION = var.ver
+      VERSION = local.app_version
     }
   }
 }
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role
-resource "aws_iam_role" "lambda_role" {
-  name = var.lambda_name
+resource "aws_iam_role" "this" {
+  name = "${var.lambda_name}-role"
 
   assume_role_policy = jsonencode({
     Statement = [
@@ -124,7 +159,7 @@ resource "aws_iam_role" "lambda_role" {
 
 resource "aws_iam_role_policy" "secretmanager_policy" {
   name = "secretmanager-read"
-  role = aws_iam_role.lambda_role.id
+  role = aws_iam_role.this.id
 
   policy = jsonencode({
     Version : "2012-10-17",
@@ -146,9 +181,9 @@ resource "aws_iam_role_policy" "secretmanager_policy" {
 #   }
 # }
 
-resource "aws_iam_role_policy" "lambda_log_policy" {
+resource "aws_iam_role_policy" "log_policy" {
   name = "log"
-  role = aws_iam_role.lambda_role.id
+  role = aws_iam_role.this.id
 
   policy = jsonencode({
     "Version" : "2012-10-17",

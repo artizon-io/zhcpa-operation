@@ -3,7 +3,7 @@ from pprint import pprint
 from typing import Any, Dict
 import boto3
 from botocore.exceptions import ClientError
-from op.env import project_name, env, aws_region
+from op.env import project_name, aws_region
 
 
 def get_secret() -> Dict[str, str]:

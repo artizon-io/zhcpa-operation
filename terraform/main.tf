@@ -33,12 +33,12 @@ data "aws_secretsmanager_secret_version" "this" {
 # }
 
 locals {
-  ecr_url    = format("%v.dkr.ecr.%v.amazonaws.com", data.aws_caller_identity.this.account_id, var.aws_region)
+  ecr_url       = format("%v.dkr.ecr.%v.amazonaws.com", data.aws_caller_identity.this.account_id, var.aws_region)
   ecr_image_url = format("%v/%v:%v", local.ecr_url, aws_ecr_repository.this.id, local.app_version)
-  app_version    = var.app_version
+  app_version   = var.app_version
   # app_version    = trim(data.local_file.app_version.content, " ")
   # app_version = data.external.app_version.result
-  secrets        = jsondecode(data.aws_secretsmanager_secret_version.this.secret_string)
+  secrets = jsondecode(data.aws_secretsmanager_secret_version.this.secret_string)
   # envs             = { for tuple in regexall("(.*)=(.*)", file(".env")) : tuple[0] => sensitive(tuple[1]) }
   # bump_app_version = coalesce(local.envs["BUMP_APP_VERSION"], true)
 }
@@ -205,4 +205,19 @@ resource "aws_iam_role_policy" "log_policy" {
       }
     ]
   })
+}
+
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_event_rule
+# https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html
+resource "aws_cloudwatch_event_rule" "this" {
+  name = var.lambda_name
+  # https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-cron-expressions.html
+  # https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rate-expressions.html
+  schedule_expression = "cron(0 3 * * ? *)"
+}
+
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_event_target
+resource "aws_cloudwatch_event_target" "this" {
+  rule = aws_cloudwatch_event_rule.this.name
+  arn  = aws_lambda_function.this.arn
 }

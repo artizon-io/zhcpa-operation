@@ -21,6 +21,8 @@ boto3 = "^1.28.62"
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.24.0"
 pytest = "^7.4.2"
+botocore-stubs = "^1.31.62"
+boto3-stubs = "^1.28.62"
 
 [build-system]
 requires = ["poetry-core"]

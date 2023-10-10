@@ -141,7 +141,7 @@ def deduplicate_records_by_id(records: List[Any]) -> List[Any]:
     return df.to_dict(orient="records")
 
 
-def deduplicate_records(records: List[Any], columns: List[str]) -> List[str]:
+def deduplicate_records(records: List[Any], columns: List[str]) -> List[Any]:
     df = pd.DataFrame(records)
     df = df[df.duplicated(columns, keep="first")]  # pyright: ignore
 

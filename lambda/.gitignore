@@ -4,3 +4,4 @@
 cache.ini
 examples/
 requirements.txt
+.pytest_cache/

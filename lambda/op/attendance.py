@@ -95,12 +95,12 @@ def get_attendance_records(
             partial(fetch_from_server, size=50)
         )()
 
-    records = list(
+    records : List[AttendanceRecord] = list(
         filter(
             lambda r: r is not None,
             map(extract_attendance_details, all_records),
         )
-    )
+    )  # pyright: ignore
 
     return records
 
@@ -119,7 +119,7 @@ def upsert_attendance(attendance_records: List[AttendanceRecord]):
 
     supabase.table("attendance").upsert(
         data,
-        on_conflict="opuser_id,check_time",
+        ignore_duplicates=True
     ).execute()
 
 
@@ -140,8 +140,6 @@ def upsert_new_attendance():
 
     records = deduplicate_records(records, ["check_time", "opuserid"])
     records = deduplicate_records_by_id(records)
-
-    records = deduplicate_records(records)
 
     logger.info(f"Upserting {len(records)} new attendance records")
 

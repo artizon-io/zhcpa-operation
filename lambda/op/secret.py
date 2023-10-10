@@ -1,6 +1,6 @@
 import json
 from pprint import pprint
-from typing import Dict
+from typing import Any, Dict
 import boto3
 from botocore.exceptions import ClientError
 from op.env import project_name, env, aws_region
@@ -14,9 +14,9 @@ def get_secret() -> Dict[str, str]:
     )
 
     try:
-        res = client.get_secret_value(SecretId=f"{project_name}")
+        res: Any = client.get_secret_value(SecretId=f"{project_name}")
     except ClientError as e:
-        error_code = e.response["Error"]["Code"]
+        error_code = e.response["Error"]["Code"]  # pyright: ignore
         raise Exception(f"Fail to fetch secret {project_name}\n{error_code}")
     else:
         # Secrets Manager decrypts the secret value using the associated KMS CMK
